@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_000003) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_000004) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -48,6 +48,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000003) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+  end
+
+  create_table "devices", force: :cascade do |t|
+    t.string "name", null: false
+    t.string "token_digest", null: false
+    t.integer "lock_minutes"
+    t.bigint "registered_by_id", null: false
+    t.datetime "last_used_at"
+    t.datetime "revoked_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["registered_by_id"], name: "index_devices_on_registered_by_id"
+    t.index ["token_digest"], name: "index_devices_on_token_digest", unique: true
   end
 
   create_table "menu_items", force: :cascade do |t|
@@ -210,6 +223,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000003) do
     t.boolean "active", default: true, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.string "pin_digest"
+    t.integer "pin_failed_attempts", default: 0, null: false
+    t.datetime "pin_locked_until"
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
@@ -232,6 +248,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000003) do
 
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
+  add_foreign_key "devices", "users", column: "registered_by_id"
   add_foreign_key "menu_items", "categories"
   add_foreign_key "order_events", "orders"
   add_foreign_key "order_events", "users"

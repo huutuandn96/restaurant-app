@@ -3,10 +3,10 @@ import { useAuth } from './auth'
 import { unlockAudio } from './notify'
 import type { Role } from './types'
 
-type Props = { title: string; subtitle: string; demo: string[]; allowed: Role[] }
+type Props = { title: string; subtitle: string; demo: string[]; allowed: Role[]; notice?: string; extra?: React.ReactNode }
 
 // Dùng chung cho Staff site và Manage site
-export default function LoginPage({ title, subtitle, demo, allowed }: Props) {
+export default function LoginPage({ title, subtitle, demo, allowed, notice, extra }: Props) {
   const login = useAuth((s) => s.login)
   const logout = useAuth((s) => s.logout)
   const [email, setEmail] = useState('')
@@ -38,6 +38,7 @@ export default function LoginPage({ title, subtitle, demo, allowed }: Props) {
         <div className="text-4xl">🍽️</div>
         <h1 className="mt-2 text-2xl font-extrabold">{title}</h1>
         <p className="text-sm text-stone-500">{subtitle}</p>
+        {notice && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">{notice}</p>}
         <input
           type="email" autoComplete="username" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)}
           className="mt-5 w-full rounded-xl bg-stone-50 px-4 py-3 text-[16px] outline-none ring-1 ring-stone-200 focus:ring-brand-500"
@@ -50,6 +51,7 @@ export default function LoginPage({ title, subtitle, demo, allowed }: Props) {
         <button disabled={loading} className="mt-4 w-full rounded-xl bg-brand-500 py-3 font-bold text-white active:scale-[0.99] disabled:opacity-60">
           {loading ? 'Đang đăng nhập…' : 'Đăng nhập'}
         </button>
+        {extra}
         <div className="mt-5 border-t border-stone-100 pt-4">
           <p className="text-xs font-semibold uppercase tracking-wide text-stone-400">Tài khoản demo</p>
           <div className="mt-2 flex flex-wrap gap-2">

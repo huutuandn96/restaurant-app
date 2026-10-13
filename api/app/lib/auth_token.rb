@@ -5,8 +5,9 @@ module AuthToken
 
   module_function
 
-  def issue_user(user)
-    encode({ sub: user.id, role: user.role }, api_secret, API_TTL)
+  # via: "pin" → token chỉ dùng cho Staff, Manage từ chối (SPEC §4.1)
+  def issue_user(user, via: "password")
+    encode({ sub: user.id, role: user.role, amr: via }, api_secret, API_TTL)
   end
 
   def decode_user(token)

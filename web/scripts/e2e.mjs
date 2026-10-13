@@ -169,6 +169,16 @@ await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token }
 const dashPromoAfter = (await call('GET', '/manage/dashboard', { token: manager.token })).data
 ok(dashPromoAfter.revenue - dashPromo.revenue === withVoucher.total, `Doanh thu tính sau giảm giá (+${withVoucher.total})`)
 
+console.log('\n10. Đăng nhập PIN')
+const dev = (await call('POST', '/staff/devices', { token: manager.token, body: { name: 'E2E device' } })).data
+const pinRes = await fetch(`${API}/auth/pin`, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Device-Token': dev.device_token }, body: JSON.stringify({ user_id: waiter.user.id, pin: '2468' }) })
+const pinLogin = await pinRes.json()
+ok(pinRes.status === 200 && pinLogin.via === 'pin', 'Máy đã ghi danh: phục vụ đăng nhập PIN')
+ok((await call('GET', '/manage/dashboard', { token: pinLogin.token })).status === 403, 'Phiên PIN không vào được Manage (403)')
+await call('DELETE', `/staff/devices/${dev.id}`, { token: manager.token })
+const revoked = await fetch(`${API}/auth/pin/users`, { headers: { 'X-Device-Token': dev.device_token } })
+ok(revoked.status === 401, 'Thu hồi máy → không dùng PIN được')
+
 // Dọn: đóng phiên vừa mở ở bước kiểm tra quét lại
 await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
 ;[g, w, k, m].forEach((x) => x.socket.disconnect())

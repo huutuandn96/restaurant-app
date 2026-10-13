@@ -9,7 +9,10 @@ module Api
         end
 
         def create
-          render json: UserSerializer.call(User.create!(user_params)), status: :created
+          u = User.new(user_params)
+          u.pin = params[:pin] if params[:pin].present?
+          u.save!
+          render json: UserSerializer.call(u), status: :created
         end
 
         def update
@@ -18,6 +21,8 @@ module Api
           attrs = attrs.except(:password) if attrs[:password].blank?
           raise ServiceError, "Không thể tự khoá hoặc đổi quyền của chính mình" if u == current_user && (attrs.key?(:active) || attrs.key?(:role))
 
+          u.pin = params[:pin] if params[:pin].present?
+          u.pin_digest = nil if params[:clear_pin]
           u.update!(attrs)
           render json: UserSerializer.call(u)
         end

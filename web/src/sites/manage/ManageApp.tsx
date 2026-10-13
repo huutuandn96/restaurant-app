@@ -16,8 +16,18 @@ import PromotionsPage from './PromotionsPage'
 
 export default function ManageApp() {
   const user = useAuth((s) => s.user)
-  if (!hasRole(user, 'manager', 'owner')) {
-    return <LoginPage title="Quản lý" subtitle="Dành cho quản lý & chủ nhà hàng" demo={['manager@demo.vn', 'owner@demo.vn']} allowed={['manager', 'owner']} />
+  const via = useAuth((s) => s.via)
+  // Phiên PIN (máy dùng chung) không vào Manage (SPEC §4.1)
+  if (!hasRole(user, 'manager', 'owner') || via === 'pin') {
+    return (
+      <LoginPage
+        title="Quản lý"
+        subtitle="Dành cho quản lý & chủ nhà hàng"
+        demo={['manager@demo.vn', 'owner@demo.vn']}
+        allowed={['manager', 'owner']}
+        notice={via === 'pin' ? 'Bạn đang đăng nhập bằng PIN. Trang quản lý cần email và mật khẩu.' : undefined}
+      />
+    )
   }
   return <Shell />
 }

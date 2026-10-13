@@ -46,6 +46,8 @@ Lần đầu mất khoảng 3–5 phút. Khi xong, bạn chạy `make e2e` để
 
 Mật khẩu chung: `password`. Màn đăng nhập có sẵn nút đăng nhập nhanh cho từng tài khoản.
 
+**Đăng nhập PIN** (máy dùng chung): đăng nhập Staff bằng `manager` → ⚙︎ → *Máy dùng chung* → ghi danh máy. Sau đó bấm 🔒 Khoá, màn hình hiện danh sách nhân viên; chọn tên rồi nhập PIN: owner `9630`, manager `2580`, waiter `2468`, waiter2 `3690`, kitchen `1470`. Phiên PIN chỉ vào được Staff, không vào được Manage.
+
 | Email | Role | Vào được |
 |---|---|---|
 | `owner@demo.vn` | Chủ | Staff + Manage + Doanh thu + Nhân viên |
@@ -78,7 +80,7 @@ Nên dùng 3 thiết bị (hoặc 3 tab trình duyệt): khách, phục vụ, b�
 | 9e | Phục vụ | Trong giờ happy hour (seed: đồ uống −20%, 14:00–18:00), khách gọi đồ uống. Khi thanh toán nhập mã **KM10**, thêm *Giảm giá thêm* 5% + lý do | Menu khách hiện giá gạch ngang; modal thanh toán và hoá đơn hiện tạm tính, voucher, giảm tay, khách cần trả. Phục vụ giảm quá 10% bị chặn |
 | 10 | Quản lý | **Tổng quan**, **Đơn hàng**, **Doanh thu** (chỉ owner) → Xuất CSV | Số liệu cập nhật realtime. CSV mở bằng Excel không lỗi tiếng Việt |
 
-Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (40 điểm kiểm tra).
+Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (43 điểm kiểm tra).
 
 **In phiếu:** app in qua hộp thoại in của trình duyệt, khổ 80mm. Cài máy in nhiệt (USB/LAN/Bluetooth) trên thiết bị rồi chọn nó trong hộp thoại; không có máy in thì chọn *Lưu thành PDF*. Trên máy bếp muốn in thẳng không hỏi: mở Chrome bằng `--kiosk-printing` và đặt máy in nhiệt làm mặc định. Tên, địa chỉ, SĐT quán trên hoá đơn đặt bằng `RESTAURANT_*` trong `.env`.
 

@@ -83,7 +83,7 @@ export type MenuItem = {
 
 export type Category = { id: number; name: string; position: number; active: boolean; items?: MenuItem[] }
 
-export type User = { id: number; name: string; email: string; role: Role; active: boolean }
+export type User = { id: number; name: string; email: string; role: Role; active: boolean; has_pin?: boolean }
 
 export type StaffCall = {
   id: number

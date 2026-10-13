@@ -13,6 +13,7 @@ type Options = {
   body?: unknown
   token?: string | null // staff / manage JWT
   sessionToken?: string | null // khách (X-Session-Token)
+  deviceToken?: string | null // máy đã ghi danh, đăng nhập PIN (X-Device-Token)
 }
 
 // Hook toàn cục khi gặp 401 (staff site dùng để logout)
@@ -21,10 +22,11 @@ export const setUnauthorizedHandler = (fn: (() => void) | null) => {
   onUnauthorized = fn
 }
 
-export async function api<T>(path: string, { method = 'GET', body, token, sessionToken }: Options = {}): Promise<T> {
+export async function api<T>(path: string, { method = 'GET', body, token, sessionToken, deviceToken }: Options = {}): Promise<T> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json', Accept: 'application/json' }
   if (token) headers.Authorization = `Bearer ${token}`
   if (sessionToken) headers['X-Session-Token'] = sessionToken
+  if (deviceToken) headers['X-Device-Token'] = deviceToken
 
   const res = await fetch(`/api/v1${path}`, {
     method,
