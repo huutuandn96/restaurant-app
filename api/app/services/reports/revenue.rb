@@ -1,4 +1,4 @@
-# Doanh thu = Σ total của order completed theo completed_at (SPEC §3)
+# Doanh thu = Σ (total − discount) của order completed theo completed_at (SPEC §3, §5.6)
 module Reports
   class Revenue
     GROUPS = %w[day month].freeze
@@ -19,7 +19,7 @@ module Reports
       rows = Order.completed
                   .where(completed_at: @from.beginning_of_day..@to.end_of_day)
                   .group(bucket).order(bucket)
-                  .pluck(bucket, Arel.sql("COUNT(*)"), Arel.sql("SUM(total)"))
+                  .pluck(bucket, Arel.sql("COUNT(*)"), Arel.sql("SUM(total - discount)"))
 
       data = rows.map { |d, count, sum| { period: format_period(d), orders: count, revenue: sum.to_i } }
       { from: @from, to: @to, group: @group, rows: data,

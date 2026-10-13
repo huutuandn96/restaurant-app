@@ -10,6 +10,7 @@ import { getPref, printBill, setPref } from '../../shared/print'
 import OrderCard from './OrderCard'
 import { CancelOrderDialog, ConfirmOrderDialog } from './ConfirmDialogs'
 import MoveTableDialog from './MoveTableDialog'
+import DiscountPanel from './DiscountPanel'
 
 export default function TableDetailPage() {
   const id = Number(useParams().id)
@@ -109,10 +110,7 @@ export default function TableDetailPage() {
 
       {paying && (
         <Modal title={`Thanh toán ${data.label}`} onClose={() => setPaying(false)}>
-          <div className="text-center">
-            <div className="text-sm text-stone-500">Khách cần thanh toán</div>
-            <div className="my-2 text-4xl font-extrabold">{money(data.session_total)}</div>
-          </div>
+          {data.session && <DiscountPanel sessionId={data.session.id} />}
           {pending.length > 0 && (
             <p className="mt-2 rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">
               ⚠️ Còn {pending.length} đơn chưa xác nhận — sẽ bị huỷ khi đóng bàn.

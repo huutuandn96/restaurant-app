@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.14 · **Ngày tạo:** 2026-10-13
+**Version:** 1.15 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -157,7 +157,7 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 ### Quy tắc nghiệp vụ
 - Giá lưu **snapshot** trong order_item.
 - `orders.total` = Σ (price_snapshot × quantity) của item **không** `out_of_stock`.
-- **Doanh thu** = Σ total của order `completed` (theo `completed_at`).
+- **Doanh thu** = Σ (`total` − `discount`) của order `completed` (theo `completed_at`). `discount` = phần giảm giá hoá đơn phân bổ khi thanh toán (§5.6).
 - Báo hết món có option "Hết cả menu" → `menu_items.available = false` + broadcast.
 - Mọi đổi trạng thái ghi `order_events`.
 - Món đang được bếp xử lý: done hết (tính cả hết món) → order `ready`; còn món chưa xong → `preparing`.
@@ -256,6 +256,27 @@ Nhân viên (phục vụ, quản lý, chủ) nhập khi khách gọi điện —
 - Form chọn bàn gợi ý bàn đủ chỗ cho số người trước.
 - Realtime: `reservation.updated` tới `waiters` + `managers`.
 
+### 5.6 Khuyến mãi
+Ba loại, cấu hình ở **Manage → 🎟️ Khuyến mãi** (manager, owner):
+
+**1. Giảm giá món theo khung giờ (happy hour)** — bảng `promotions`
+- Tên, % giảm (1–90), khung giờ `HH:MM–HH:MM` (hỗ trợ qua nửa đêm), ngày trong tuần (rỗng = mọi ngày), khoảng ngày (tuỳ chọn), áp cho danh mục / món cụ thể (rỗng = toàn menu), bật/tắt.
+- Menu khách hiện giá đã giảm, giá gốc gạch ngang + nhãn “Happy hour … -20%”. Trùng nhiều chương trình → lấy % cao nhất. Giá giảm làm tròn 100đ.
+- Đặt món: `price_snapshot` = giá đã giảm, lưu thêm `original_price` + `promotion_name`. Hoá đơn ghi tên chương trình cạnh món.
+- Menu khách tự tải lại mỗi 5 phút; sửa chương trình → event `menu.refresh` để khách tải lại ngay.
+
+**2. Mã voucher** — bảng `vouchers`
+- Mã (chữ hoa, 3–20 ký tự), giảm % (có thể đặt trần `max_discount`) hoặc số tiền, đơn tối thiểu, thời gian hiệu lực, số lượt tối đa, bật/tắt, ghi chú.
+- Nhập ở bước thanh toán; 1 voucher / phiên bàn. Mã hết hạn / hết lượt / bị tắt → từ chối. Chưa đủ đơn tối thiểu → giữ mã nhưng giảm 0 và báo lý do.
+- Lượt dùng (`used_count`) chỉ tăng khi **đã thanh toán** và voucher thực sự giảm. Mã đã dùng thì không xoá được (chỉ tắt).
+
+**3. Giảm giá trên hoá đơn (giảm tay)** — cột trên `table_sessions`
+- Phục vụ / quản lý nhập % hoặc số tiền + **lý do bắt buộc** ở modal thanh toán. Phục vụ tối đa `MANUAL_DISCOUNT_MAX_PERCENT` (10%) tổng bàn, quản lý / chủ không giới hạn.
+
+**Tính tiền**: tạm tính (tổng phiên) → trừ voucher → giảm tay tính trên phần còn lại → **khách cần trả**. Modal thanh toán và phiếu tạm tính / hoá đơn hiện đủ các dòng.
+**Khi thanh toán** (`Discounts::Finalize`): chốt số tiền giảm vào `table_sessions.discount_total`, phân bổ theo tỉ lệ về `orders.discount` của các đơn hoàn thành.
+**Doanh thu** (dashboard, báo cáo, CSV) = Σ(`total` − `discount`) — xem §3.
+
 ---
 
 ## 6. API (prefix `/api/v1`)
@@ -280,6 +301,7 @@ Nhân viên (phục vụ, quản lý, chủ) nhập khi khách gọi điện —
 - `GET /staff/reservations?date=` · `POST /staff/reservations` · `PATCH /staff/reservations/:id` · `POST /staff/reservations/:id/arrive|cancel|no_show` (§5.5). `GET /staff/tables` trả thêm `reservation` (lượt đang giữ bàn)
 - `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
 - `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
+- `PUT /staff/table_sessions/:id/discount {voucher_code, manual_kind: percent|amount, manual_value, reason}` — đặt lại toàn bộ giảm giá của phiên, trả về bill (§5.6)
 - `GET /staff/table_sessions/:id/bill` — dữ liệu in hoá đơn / tạm tính (waiter, manager, owner). Checkout trả thêm `closed_session_id`
 
 **Manage**
@@ -291,6 +313,7 @@ Nhân viên (phục vụ, quản lý, chủ) nhập khi khách gọi điện —
 - `GET /manage/reports/revenue?from=&to=&group=day|month(&format=csv)` (owner; mặc định đầu tháng → hôm nay)
 - `GET /manage/orders?status=&date=&table_id=&page=` (30/trang)
 - CRUD `/manage/users` (owner)
+- CRUD `/manage/promotions` · `/manage/vouchers` (manager, owner — §5.6)
 
 ---
 
@@ -330,6 +353,7 @@ RESTAURANT_BILL_FOOTER=Cảm ơn quý khách, hẹn gặp lại!
 
 RESERVATION_DURATION_MINUTES=120   # §5.5 chặn đặt trùng
 RESERVATION_HOLD_MINUTES=60        # §5.5 giữ chỗ trên sơ đồ
+MANUAL_DISCOUNT_MAX_PERCENT=10     # §5.6 mức giảm tay tối đa của phục vụ
 ```
 
 ### 8.2 Production (`.env.production.example` → `.env.production`, không commit)
@@ -408,13 +432,12 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 37 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 40 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
-- Khuyến mãi / voucher
 - Login PIN cho nhân viên, PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
@@ -438,3 +461,4 @@ restaurant-app/
 | 2026-10-13 | 1.12 | Bếp: chế độ xem *Theo món* (gom các phần chưa xong theo món, bắt đầu / xong / hết cả mẻ). API `PATCH /staff/order_items/batch`. e2e 34 kiểm tra |
 | 2026-10-13 | 1.13 | Thêm §2.5 Chuyển / gộp bàn: `table_sessions.merged_into_id`, `TableSession.resolve` cho token khách, API move/merge, event `session.moved` / `session.merged`, app khách tự đổi bàn và giữ giỏ hàng. e2e 35 kiểm tra |
 | 2026-10-13 | 1.14 | Thêm §5.5 Đặt bàn trước (nhân viên nhập): bảng `reservations`, chặn trùng 2 giờ, giữ chỗ trên sơ đồ bàn, khách đến → mở phiên. Tab Đặt bàn ở Staff site, seed lượt đặt demo. e2e 37 kiểm tra |
+| 2026-10-13 | 1.15 | Thêm §5.6 Khuyến mãi: happy hour theo khung giờ (giá menu + snapshot giá gốc), mã voucher, giảm tay trên hoá đơn (phục vụ ≤10%). Phân bổ giảm giá vào `orders.discount`; doanh thu = Σ(total − discount). Trang Manage Khuyến mãi, seed demo. e2e 40 kiểm tra |

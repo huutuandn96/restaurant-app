@@ -101,7 +101,10 @@ function BillReceipt({ bill, printedAt }: { bill: Bill; printedAt: string }) {
       <div className="r-row r-small r-head"><span>Món</span><span>Thành tiền</span></div>
       {bill.lines.map((l) => (
         <div key={`${l.name}-${l.price}`} className="r-item">
-          <div>{l.name}</div>
+          <div>
+            {l.name}
+            {l.promotion && <span className="r-small"> ({l.promotion})</span>}
+          </div>
           <div className="r-row r-small">
             <span>{l.quantity} × {money(l.price)}</span>
             <span>{money(l.amount)}</span>
@@ -109,6 +112,14 @@ function BillReceipt({ bill, printedAt }: { bill: Bill; printedAt: string }) {
         </div>
       ))}
       <hr />
+      {bill.discount_total > 0 && (
+        <>
+          <div className="r-row"><span>Tạm tính</span><span>{money(bill.subtotal)}</span></div>
+          {bill.discounts.filter((d) => d.amount > 0).map((d) => (
+            <div key={d.kind} className="r-row"><span>{d.label}</span><span>−{money(d.amount)}</span></div>
+          ))}
+        </>
+      )}
       <div className="r-row r-lg"><b>TỔNG CỘNG</b><b>{money(bill.total)}</b></div>
       <hr />
       {bill.provisional && <div className="r-center r-small">(Phiếu tạm tính, chưa thanh toán)</div>}

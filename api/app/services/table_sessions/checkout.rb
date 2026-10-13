@@ -28,6 +28,7 @@ module TableSessions
           o.log_event!("cancel", user: @user, from: "pending", to: "cancelled")
           changed << o
         end
+        Discounts::Finalize.call(session) # chốt voucher + giảm tay (SPEC §5.6)
         session.staff_calls.open.update_all(status: "resolved", resolved_by_id: @user.id, resolved_at: now)
         session.update!(status: "closed", closed_at: now, closed_by: @user)
         @table.update!(status: "available")

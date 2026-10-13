@@ -154,6 +154,21 @@ const r2 = await call('POST', '/staff/reservations', { token: waiter.token, body
 ok(r1.status === 201 && r2.status === 422, `Đặt ${table.label} 11:00; đặt trùng 12:00 bị chặn`)
 ok((await call('POST', `/staff/reservations/${r1.data.id}/cancel`, { token: waiter.token })).data.status === 'cancelled', 'Huỷ lượt đặt')
 
+console.log('\n9. Khuyến mãi')
+await call('POST', '/manage/vouchers', { token: manager.token, body: { code: 'E2ETEST', kind: 'amount', value: 10000 } })
+const vlist = (await call('GET', '/manage/vouchers', { token: manager.token })).data
+await call('PATCH', `/manage/vouchers/${vlist.find((v) => v.code === 'E2ETEST').id}`, { token: manager.token, body: { active: true, usage_limit: null, min_spend: 0 } })
+const promoOrder = (await call('POST', '/public/orders', { session: next.session_token, body: { items: [{ menu_item_id: items[3].id, quantity: 2 }] } })).data
+await call('POST', `/staff/orders/${promoOrder.id}/confirm`, { token: waiter.token })
+const dashPromo = (await call('GET', '/manage/dashboard', { token: manager.token })).data
+const withVoucher = (await call('PUT', `/staff/table_sessions/${promoOrder.table_session_id}/discount`, { token: waiter.token, body: { voucher_code: 'e2etest' } })).data
+ok(withVoucher.total === promoOrder.total - 10000, `Voucher E2ETEST: ${withVoucher.subtotal} → ${withVoucher.total}`)
+const tooMuch = await call('PUT', `/staff/table_sessions/${promoOrder.table_session_id}/discount`, { token: waiter.token, body: { voucher_code: 'E2ETEST', manual_kind: 'percent', manual_value: 50, reason: 'e2e' } })
+ok(tooMuch.status === 403, 'Phục vụ giảm tay 50% bị chặn (403)')
+await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
+const dashPromoAfter = (await call('GET', '/manage/dashboard', { token: manager.token })).data
+ok(dashPromoAfter.revenue - dashPromo.revenue === withVoucher.total, `Doanh thu tính sau giảm giá (+${withVoucher.total})`)
+
 // Dọn: đóng phiên vừa mở ở bước kiểm tra quét lại
 await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
 ;[g, w, k, m].forEach((x) => x.socket.disconnect())

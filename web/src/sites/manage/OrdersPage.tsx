@@ -166,6 +166,9 @@ function OrderDetail({ id, onClose }: { id: number; onClose: () => void }) {
             ))}
           </ul>
           <div className="flex justify-between border-t border-stone-100 pt-2 font-bold"><span>Tổng</span><span>{money(o.total)}</span></div>
+          {o.discount > 0 && (
+            <div className="flex justify-between text-sm text-green-700"><span>Giảm giá hoá đơn (phân bổ)</span><span>−{money(o.discount)} → {money(o.total - o.discount)}</span></div>
+          )}
           {o.note && <p className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-800">Ghi chú: {o.note}</p>}
           {o.cancel_reason && <p className="text-sm text-red-600">Lý do huỷ: {o.cancel_reason}</p>}
           <div className="flex flex-wrap gap-2">

@@ -15,7 +15,7 @@ export type MenuData = { categories: Category[] }
 
 export default function MenuPage({ socketStatus }: { socketStatus: SocketStatus }) {
   const { session, qrToken } = useGuest()
-  const menu = useQuery({ queryKey: ['public-menu'], queryFn: () => api<MenuData>('/public/menu'), staleTime: 60_000 })
+  const menu = useQuery({ queryKey: ['public-menu'], queryFn: () => api<MenuData>('/public/menu'), staleTime: 60_000, refetchInterval: 5 * 60_000 }) // happy hour đổi giá theo giờ
   const lines = useCart((s) => s.lines)
   const syncMenu = useCart((s) => s.syncMenu)
   useEffect(() => {
@@ -202,7 +202,19 @@ function ItemRow({ item }: { item: MenuItem }) {
         <h3 className="font-semibold leading-tight">{item.name}</h3>
         {item.description && <p className="mt-0.5 line-clamp-2 text-sm text-stone-500">{item.description}</p>}
         <div className="mt-auto flex items-end justify-between pt-2">
-          <span className="font-bold text-brand-600">{money(item.price)}</span>
+          <span>
+            {item.original_price ? (
+              <>
+                <span className="mr-1 rounded bg-red-500 px-1 py-0.5 text-[10px] font-bold text-white">{item.promotion}</span>
+                <span className="block">
+                  <span className="font-bold text-red-600">{money(item.price)}</span>
+                  <span className="ml-1.5 text-xs text-stone-400 line-through">{money(item.original_price)}</span>
+                </span>
+              </>
+            ) : (
+              <span className="font-bold text-brand-600">{money(item.price)}</span>
+            )}
+          </span>
           {item.available ? (
             <QtyControl qty={qty} onInc={() => add(item)} onDec={() => dec(item.id)} />
           ) : (
