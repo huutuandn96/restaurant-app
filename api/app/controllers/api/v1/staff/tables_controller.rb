@@ -12,12 +12,15 @@ module Api
           ready = Order.ready.where(table_session_id: session_ids).group(:table_session_id).count
           calls = StaffCall.open.where(table_session_id: session_ids).group(:table_session_id).count
           totals = Order.where(table_session_id: session_ids).where.not(status: "cancelled").group(:table_session_id).sum(:total)
+          # Bàn đang được giữ cho khách đặt trước (SPEC §5.5)
+          holds = Reservation.holding.order(:reserved_at).group_by(&:table_id).transform_values(&:first)
 
           render json: tables.map { |t|
             sid = t.open_session&.id
             TableSerializer.call(t).merge(
               pending_orders: pending[sid].to_i, ready_orders: ready[sid].to_i,
-              open_calls: calls[sid].to_i, session_total: totals[sid].to_i
+              open_calls: calls[sid].to_i, session_total: totals[sid].to_i,
+              reservation: holds[t.id]&.then { |r| r.slice(:id, :customer_name, :party_size, :reserved_at).merge(late: r.late?) }
             )
           }
         end

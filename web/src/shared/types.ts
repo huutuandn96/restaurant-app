@@ -87,6 +87,24 @@ export type StaffCall = {
   table: TableRef
 }
 
+// Đặt bàn trước (SPEC §5.5)
+export type ReservationStatus = 'booked' | 'arrived' | 'cancelled' | 'no_show'
+export type Reservation = {
+  id: number
+  customer_name: string
+  phone: string
+  party_size: number
+  reserved_at: string
+  note: string | null
+  status: ReservationStatus
+  late: boolean
+  table: TableRef & { seats: number }
+  created_by: { id: number; name: string } | null
+  arrived_at: string | null
+  cancelled_at: string | null
+  created_at: string
+}
+
 // Event realtime (SPEC §1)
 export type RealtimeEvents = {
   'order.created': Order
@@ -98,6 +116,7 @@ export type RealtimeEvents = {
   'table.updated': Table
   'menu_item.updated': MenuItem
   'session.closed': { table_session_id: number }
+  'reservation.updated': Reservation
   // Chuyển / gộp bàn (SPEC §2.5): table = bàn mới của khách
   'session.moved': { table_session_id: number; table: Table }
   'session.merged': { table_session_id: number; table: Table }

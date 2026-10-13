@@ -6,7 +6,7 @@ puts "Xoá dữ liệu cũ..."
 ActiveStorage::Attachment.delete_all
 ActiveStorage::VariantRecord.delete_all
 ActiveStorage::Blob.find_each(&:purge)
-[OrderEvent, OrderItem, Order, StaffCall, TableSession, MenuItem, Category, Table, User].each(&:delete_all)
+[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, MenuItem, Category, Table, User].each(&:delete_all)
 
 puts "Users..."
 [
@@ -181,6 +181,21 @@ o5 = build_order(s5, random_lines(menu, 5), created_at: now - 65.minutes, status
 o5.order_items.update_all(status: "done", done_at: now - 45.minutes)
 o5.update!(status: "ready", ready_at: now - 45.minutes)
 s5.staff_calls.create!
+
+puts "Đặt bàn..."
+tables = Table.ordered.index_by(&:number)
+waiter_an = User.find_by!(email: "waiter@demo.vn")
+soon = (now + 40.minutes).change(sec: 0)
+evening = now.change(hour: 19, min: 0)
+evening += 1.day if evening < now + 2.hours
+[
+  [tables[9], "Anh Minh", "0903111222", 4, soon, "Sắp đến — bàn hiện giữ chỗ"],
+  [tables[10], "Chị Lan", "0912333444", 6, evening, "Sinh nhật, chuẩn bị bánh"],
+  [tables[6], "Anh Tuấn", "0987555666", 2, evening + 30.minutes, nil],
+  [tables[1], "Cô Hoa", "0909777888", 8, evening + 1.day, "Gộp 2 bàn nếu đông"]
+].each do |table, name, phone, size, at, note|
+  Reservation.create!(table:, customer_name: name, phone:, party_size: size, reserved_at: at, note:, created_by: waiter_an)
+end
 
 puts "Xong: #{User.count} users, #{Table.count} bàn, #{MenuItem.count} món, #{Order.count} đơn"
 puts "Đăng nhập (mật khẩu: password): owner@demo.vn, manager@demo.vn, waiter@demo.vn, kitchen@demo.vn"

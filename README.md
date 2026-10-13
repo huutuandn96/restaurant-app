@@ -74,9 +74,10 @@ Nên dùng 3 thiết bị (hoặc 3 tab trình duyệt): khách, phục vụ, b�
 | 9 | Phục vụ | **Bàn → Bàn 06 → Thanh toán & đóng bàn** | Màn khách chuyển sang "Cảm ơn quý khách". Quét lại QR thì có mã xác nhận mới |
 | 9b | Phục vụ | Trước bước 9: **Bàn 06 → 🖨️ Tạm tính**. Ở bước 9 giữ tick *In hoá đơn sau khi đóng bàn* | Hộp thoại in hiện phiếu 80mm: tạm tính, rồi hoá đơn có thu ngân |
 | 9c | Phục vụ | **Bàn 06 → ⇄ Chuyển / gộp bàn** → chọn bàn trống (chuyển) hoặc bàn có khách (gộp) | Điện thoại khách tự đổi số bàn; khi gộp, khách nhận mã của bàn đích và vẫn gọi món tiếp, giỏ hàng giữ nguyên |
+| 9d | Phục vụ | **📅 Đặt bàn → + Đặt bàn**, thử đặt trùng giờ cùng bàn; sau đó **Khách đã đến** | Đặt trùng báo lỗi; sơ đồ bàn hiện ô tím giữ chỗ; khách đến → bàn mở phiên, có mã xác nhận |
 | 10 | Quản lý | **Tổng quan**, **Đơn hàng**, **Doanh thu** (chỉ owner) → Xuất CSV | Số liệu cập nhật realtime. CSV mở bằng Excel không lỗi tiếng Việt |
 
-Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (35 điểm kiểm tra).
+Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (37 điểm kiểm tra).
 
 **In phiếu:** app in qua hộp thoại in của trình duyệt, khổ 80mm. Cài máy in nhiệt (USB/LAN/Bluetooth) trên thiết bị rồi chọn nó trong hộp thoại; không có máy in thì chọn *Lưu thành PDF*. Trên máy bếp muốn in thẳng không hỏi: mở Chrome bằng `--kiosk-printing` và đặt máy in nhiệt làm mặc định. Tên, địa chỉ, SĐT quán trên hoá đơn đặt bằng `RESTAURANT_*` trong `.env`.
 
