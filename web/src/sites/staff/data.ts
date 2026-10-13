@@ -100,6 +100,25 @@ export function useBatchItems() {
   })
 }
 
+// Chuyển sang bàn trống / gộp vào bàn đang có khách (SPEC §2.5)
+export function useMoveTable() {
+  const qc = useQueryClient()
+  const token = useToken()
+  return useMutation({
+    mutationFn: ({ from, to, mode }: { from: number; to: number; mode: 'move' | 'merge' }) =>
+      api<Table>(`/staff/tables/${from}/${mode}`, {
+        method: 'POST',
+        token,
+        body: mode === 'move' ? { to_table_id: to } : { into_table_id: to },
+      }),
+    onSuccess: (t, v) => {
+      toast(v.mode === 'move' ? `Đã chuyển sang ${t.label}` : `Đã gộp vào ${t.label}`)
+      void qc.invalidateQueries({ queryKey: ['staff'] })
+    },
+    onError: (e) => toast(e.message, 'error'),
+  })
+}
+
 export function useCheckout() {
   const qc = useQueryClient()
   const token = useToken()

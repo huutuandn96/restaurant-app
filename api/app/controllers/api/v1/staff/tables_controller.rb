@@ -32,6 +32,18 @@ module Api
           )
         end
 
+        # Chuyển sang bàn trống (SPEC §2.5)
+        def move
+          TableSessions::Move.call(Table.find(params[:id]), to: Table.find(params.require(:to_table_id)), user: current_user)
+          render json: TableSerializer.call(Table.find(params[:to_table_id]))
+        end
+
+        # Gộp vào bàn đang có khách (SPEC §2.5)
+        def merge
+          TableSessions::Merge.call(Table.find(params[:id]), into: Table.find(params.require(:into_table_id)), user: current_user)
+          render json: TableSerializer.call(Table.find(params[:into_table_id]))
+        end
+
         def checkout
           table = Table.find(params[:id])
           session = TableSessions::Checkout.call(table, user: current_user)

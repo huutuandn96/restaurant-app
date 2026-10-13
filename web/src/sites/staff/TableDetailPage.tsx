@@ -9,6 +9,7 @@ import { useAuth } from '../../shared/auth'
 import { getPref, printBill, setPref } from '../../shared/print'
 import OrderCard from './OrderCard'
 import { CancelOrderDialog, ConfirmOrderDialog } from './ConfirmDialogs'
+import MoveTableDialog from './MoveTableDialog'
 
 export default function TableDetailPage() {
   const id = Number(useParams().id)
@@ -21,6 +22,7 @@ export default function TableDetailPage() {
   const [confirming, setConfirming] = useState<Order | null>(null)
   const [cancelling, setCancelling] = useState<Order | null>(null)
   const [paying, setPaying] = useState(false)
+  const [moving, setMoving] = useState(false)
   const [billOnCheckout, setBillOnCheckout] = useState(() => getPref('bill-on-checkout', true))
   const token = useAuth((s) => s.token)
 
@@ -57,6 +59,11 @@ export default function TableDetailPage() {
         <EmptyState icon="🪑" text="Bàn trống — chưa có khách quét QR" />
       ) : (
         <>
+          <div className="mt-3 flex justify-end">
+            <button onClick={() => setMoving(true)} className="rounded-full bg-white px-3 py-1.5 text-sm font-semibold text-stone-700 ring-1 ring-stone-200">
+              ⇄ Chuyển / gộp bàn
+            </button>
+          </div>
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {data.orders.length === 0 && <EmptyState icon="🧾" text="Khách chưa đặt món" />}
             {data.orders.map((o) => (
@@ -141,6 +148,7 @@ export default function TableDetailPage() {
           </button>
         </Modal>
       )}
+      {moving && <MoveTableDialog from={data} onClose={() => setMoving(false)} />}
       {confirming && <ConfirmOrderDialog order={confirming} onClose={() => setConfirming(null)} />}
       {cancelling && <CancelOrderDialog order={cancelling} onClose={() => setCancelling(null)} />}
     </div>

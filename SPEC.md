@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.12 · **Ngày tạo:** 2026-10-13
+**Version:** 1.13 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -109,6 +109,19 @@ docker-compose
 ### 2.4 Manage – in QR
 - Trang `/manage/tables`: lưới QR mọi bàn (số bàn to + QR + URL), nút in, nút "Tạo lại QR".
 - `make qr`: in URL hiện tại của các bàn ra terminal để test.
+
+### 2.5 Chuyển / gộp bàn
+Phục vụ (manager, owner) thao tác ở **Chi tiết bàn → ⇄ Chuyển / gộp bàn**, chọn bàn đích:
+
+| | Bàn đích | Kết quả |
+|---|---|---|
+| **Chuyển** | Trống | Cả phiên (đơn, lượt gọi) sang bàn đích. **Giữ** `session_token` + `verify_code` → điện thoại khách dùng tiếp, header đổi số bàn. Bàn nguồn trống |
+| **Gộp** | Đang có khách | Đơn + lượt gọi của bàn nguồn dồn vào phiên bàn đích (1 hoá đơn). Phiên nguồn `closed` + `merged_into_id` → phiên đích. Bàn nguồn trống |
+
+- Token khách luôn được giải qua `TableSession.resolve`: phiên đã gộp → đi theo `merged_into`. Nên khách bàn nguồn vẫn xem / gọi món tiếp; app khách nhận event `session.merged`, mở lại phiên → nhận token + mã của bàn đích, **giữ giỏ hàng**.
+- Quét QR: nếu token đang giữ trỏ tới phiên còn mở (kể cả đã chuyển / gộp sang bàn khác) thì dùng lại phiên đó, không tạo phiên mới ở bàn nguồn.
+- Mỗi đơn ghi lịch sử `move_table` / `merge_table` (từ bàn → sang bàn). Realtime: `order.updated` cho từng đơn (bếp thấy số bàn mới), `table.updated` cho 2 bàn, `session.moved` / `session.merged` tới room của khách.
+- Không chuyển vào bàn có khách (dùng Gộp) và không gộp vào bàn trống (dùng Chuyển).
 
 ---
 
@@ -248,6 +261,7 @@ In qua hộp thoại in của trình duyệt (máy in nhiệt 80mm cài trên th
 **Staff**
 - `GET /staff/tables` · `GET /staff/tables/:id` (session + orders)
 - `POST /staff/tables/:id/checkout` (đóng session; lượt sau sinh session + verify code mới)
+- `POST /staff/tables/:id/move {to_table_id}` · `POST /staff/tables/:id/merge {into_table_id}` (§2.5)
 - `GET /staff/orders?status=&table_id=`
 - `POST /staff/orders/:id/confirm` · `/cancel` · `/done`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
@@ -379,13 +393,13 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 34 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 35 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
-- Gộp / chuyển bàn, đặt bàn trước, khuyến mãi / voucher
+- Đặt bàn trước, khuyến mãi / voucher
 - Login PIN cho nhân viên, PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
@@ -407,3 +421,4 @@ restaurant-app/
 | 2026-10-13 | 1.10 | Thêm D10: tách `docker-compose.prod.yml` (nginx, image production, không RustFS) và `.env.production.example`. Hỗ trợ Cloudflare R2. Thêm `PUBLIC_URL` cho QR, `FORCE_SSL`, lệnh `make prod-*`. Đã chạy thử stack prod trên máy (thay R2 bằng RustFS), e2e 30/30 |
 | 2026-10-13 | 1.11 | Thêm §5.4 In phiếu bếp & hoá đơn (80mm, qua trình duyệt): phiếu bếp thủ công / tự in, phiếu tạm tính, hoá đơn khi thanh toán, in lại từ Manage. API `GET /staff/table_sessions/:id/bill`, checkout trả `closed_session_id`. ENV `RESTAURANT_*`. e2e 33 kiểm tra |
 | 2026-10-13 | 1.12 | Bếp: chế độ xem *Theo món* (gom các phần chưa xong theo món, bắt đầu / xong / hết cả mẻ). API `PATCH /staff/order_items/batch`. e2e 34 kiểm tra |
+| 2026-10-13 | 1.13 | Thêm §2.5 Chuyển / gộp bàn: `table_sessions.merged_into_id`, `TableSession.resolve` cho token khách, API move/merge, event `session.moved` / `session.merged`, app khách tự đổi bàn và giữ giỏ hàng. e2e 35 kiểm tra |

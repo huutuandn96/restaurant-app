@@ -127,7 +127,7 @@ export default function OrdersPage() {
 const STATUSES: OrderStatus[] = ['pending', 'confirmed', 'preparing', 'ready', 'completed', 'cancelled']
 const ACTION_LABEL: Record<string, string> = {
   create: 'Khách đặt món', confirm: 'Xác nhận', cancel: 'Huỷ', done: 'Bếp xong cả đơn', complete: 'Thanh toán',
-  set_status: 'Quản lý đổi trạng thái', item_cooking: 'Bắt đầu nấu', item_done: 'Món xong', item_out_of_stock: 'Hết món',
+  set_status: 'Quản lý đổi trạng thái', item_cooking: 'Bắt đầu nấu', item_done: 'Món xong', item_out_of_stock: 'Hết món', move_table: 'Chuyển bàn', merge_table: 'Gộp bàn',
 }
 
 function OrderDetail({ id, onClose }: { id: number; onClose: () => void }) {
@@ -182,6 +182,7 @@ function OrderDetail({ id, onClose }: { id: number; onClose: () => void }) {
                 <li key={e.id}>
                   <span className="font-medium">{ACTION_LABEL[e.action] ?? e.action}</span>
                   {typeof e.data?.name === 'string' && <span className="text-stone-500"> · {e.data.name}</span>}
+                  {typeof e.data?.to === 'string' && <span className="text-stone-500"> · {String(e.data.from)} → {e.data.to}</span>}
                   {e.to_status && e.from_status !== e.to_status && <span className="text-stone-500"> → {ORDER_STATUS_LABEL[e.to_status]}</span>}
                   <div className="text-xs text-stone-400">{time(e.created_at)}{e.user && ` · ${e.user.name}`}{typeof e.data?.reason === 'string' && ` · ${e.data.reason}`}</div>
                 </li>
