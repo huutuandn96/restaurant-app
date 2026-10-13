@@ -50,4 +50,6 @@ Rails.application.configure do
 
   # Raise error when a before_action's only/except options reference missing actions.
   config.action_controller.raise_on_missing_callback_actions = true
+  # Không đẩy job sang Sidekiq/Redis khi chạy test (have_enqueued_job)
+  config.active_job.queue_adapter = :test
 end

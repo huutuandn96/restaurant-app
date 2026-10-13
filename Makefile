@@ -6,7 +6,7 @@ s ?= api
 
 .DEFAULT_GOAL := help
 .PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3 e2e \
-        prod-env prod-build prod-up prod-down prod-restart prod-logs prod-ps prod-migrate prod-seed prod-console prod-qr
+        prod-env prod-build prod-up prod-down prod-restart prod-logs prod-ps prod-migrate prod-seed prod-console prod-qr vapid
 
 PROD := docker compose --env-file .env.production -f docker-compose.prod.yml
 
@@ -78,6 +78,9 @@ urls: ## In các URL truy cập
 	@echo "  API health    : http://localhost:$(API_PORT)/api/v1/health"
 	@echo "  S3 console    : http://localhost:$(S3_CONSOLE_PORT)/rustfs/console/  ($(S3_ACCESS_KEY) / $(S3_SECRET_KEY))"
 	@echo ""
+
+vapid: ## Tạo cặp khoá VAPID cho Web Push (dán vào .env / .env.production)
+	@$(COMPOSE) exec api bundle exec ruby -e 'require "web-push"; k = WebPush.generate_key; puts "VAPID_PUBLIC_KEY=#{k.public_key}"; puts "VAPID_PRIVATE_KEY=#{k.private_key}"'
 
 s3: ## Link + tài khoản S3 console (RustFS giả lập S3)
 	@echo "  http://localhost:$(S3_CONSOLE_PORT)/rustfs/console/  user: $(S3_ACCESS_KEY)  pass: $(S3_SECRET_KEY)  bucket: $(S3_BUCKET)"

@@ -37,6 +37,11 @@ Rails.application.routes.draw do
           end
         end
         resources :devices, only: %i[index create destroy]
+        # Web Push (SPEC §1.1)
+        get "push", to: "push#show"
+        post "push", to: "push#create"
+        delete "push", to: "push#destroy"
+        post "push/test", to: "push#test"
         resources :order_items, only: :update do
           patch :batch, on: :collection
         end

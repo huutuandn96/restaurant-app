@@ -6,6 +6,7 @@ module Realtime
 
   def publish(rooms:, event:, payload:)
     redis.publish(CHANNEL, { rooms: Array(rooms), event:, payload: }.to_json)
+    PushRouter.call(event, payload) # Web Push cho máy đang tắt màn hình (SPEC §1.1)
   rescue Redis::BaseError => e
     Rails.logger.error("[realtime] publish #{event} failed: #{e.message}")
   end
