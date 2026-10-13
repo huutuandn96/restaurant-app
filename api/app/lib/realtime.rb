@@ -12,7 +12,8 @@ module Realtime
 
   def order_rooms(order, kitchen: true)
     rooms = %W[waiters managers table_session:#{order.table_session_id}]
-    rooms << "kitchen" if kitchen && Order::KITCHEN_STATUSES.include?(order.status)
+    # Bếp nhận mọi thay đổi của đơn đã từng được xác nhận (kể cả completed/cancelled để gỡ khỏi board)
+    rooms << "kitchen" if kitchen && (Order::KITCHEN_STATUSES.include?(order.status) || order.confirmed_at.present?)
     rooms
   end
 
