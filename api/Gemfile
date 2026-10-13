@@ -40,7 +40,6 @@ group :development, :test do
 end
 
 gem "jwt", "~> 2.9"
-gem "pundit", "~> 2.4"
 gem "sidekiq", "~> 8.0"
 gem "rqrcode", "~> 2.2"
 

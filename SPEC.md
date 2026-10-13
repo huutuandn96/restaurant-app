@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.2 · **Ngày tạo:** 2026-10-13
+**Version:** 1.3 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -48,10 +48,12 @@ docker-compose
 | `waiters` | Role waiter (+ manager, owner) |
 | `kitchen` | Role kitchen |
 | `managers` | Role manager, owner |
+| `guests` | Mọi khách đang ngồi (nhận cập nhật menu) |
 
 **Auth socket:** client gửi `auth.token` là JWT do Rails ký bằng `SOCKET_JWT_SECRET`.
 - Staff: `{kind: "staff", role, user_id}` → join room theo role.
-- Khách: `{kind: "guest", table_session_id}` → join `table_session:{id}`.
+- Khách: `{kind: "guest", table_session_id}` → join `table_session:{id}` + `guests`.
+- REST trả `socket_token` kèm khi login (staff) và khi mở session (khách).
 
 **Events**
 | Event | Gửi tới | Khi nào |
@@ -62,7 +64,9 @@ docker-compose
 | `order_item.updated` | waiters, kitchen, managers, table_session | Bếp done / hết món |
 | `table.call_staff` | waiters | Khách bấm "Gọi nhân viên" |
 | `table.updated` | waiters, managers | Bàn mở/đóng session |
-| `menu_item.updated` | tất cả | Đổi giá / bật tắt món / hết món |
+| `menu_item.updated` | waiters, kitchen, managers, guests | Đổi giá / bật tắt món / hết món |
+| `staff_call.resolved` | waiters | Phục vụ đã xử lý yêu cầu gọi |
+| `session.closed` | table_session | Bàn đã thanh toán → client khách về màn quét lại QR |
 
 ---
 
@@ -110,7 +114,9 @@ docker-compose
 | `orders` | table_id, table_session_id, code, status, note, total (int), confirmed_by_id, confirmed_at, completed_at, cancelled_at |
 | `order_items` | order_id, menu_item_id, name_snapshot, price_snapshot, quantity, note, status, done_at |
 | `order_events` | order_id, user_id (nullable), action, from_status, to_status, created_at |
-| `staff_calls` | table_session_id, status (`open`,`resolved`), resolved_by_id |
+| `staff_calls` | table_session_id, status (`open`,`resolved`), resolved_by_id, resolved_at |
+
+> Order có thêm: `ready_at`, `cancel_reason`. `order_events` có thêm `data` (jsonb). Chi tiết: `api/db/migrate/20261013000001_create_core_schema.rb`.
 
 ### Trạng thái Order
 ```
@@ -131,6 +137,10 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 - **Doanh thu** = Σ total của order `completed` (theo `completed_at`).
 - Báo hết món có option "Hết cả menu" → `menu_items.available = false` + broadcast.
 - Mọi đổi trạng thái ghi `order_events`.
+- Món đang được bếp xử lý: done hết (tính cả hết món) → order `ready`; còn món chưa xong → `preparing`.
+- Huỷ: phục vụ huỷ được đơn `pending`/`confirmed`; manager/owner huỷ được mọi đơn đang hoạt động.
+- Xoá món đã có trong đơn → chỉ ẩn (`available=false`) để giữ lịch sử.
+- Chỉnh giá hàng loạt làm tròn tới 1.000đ.
 
 ---
 
@@ -187,14 +197,14 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 
 ## 6. API (prefix `/api/v1`)
 
-**Public (khách)**
-- `POST /public/tables/:qr_token/session` → {session_token, table, verify_code}
+**Public (khách)** — header `X-Session-Token`
+- `POST /public/tables/:qr_token/session` → {session_token, socket_token, verify_code, table, orders, total}. Gửi kèm token cũ còn mở của đúng bàn → dùng lại
 - `GET  /public/menu` → categories + items
 - `GET  /public/session` (header `X-Session-Token`) → session + orders
 - `POST /public/orders` → tạo order
 - `POST /public/staff_calls`
 
-**Auth**: `POST /auth/login`, `GET /auth/me`
+**Auth**: `POST /auth/login`, `GET /auth/me` → {user, token, socket_token}
 
 **Staff**
 - `GET /staff/tables` · `GET /staff/tables/:id` (session + orders)
@@ -202,20 +212,22 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - `GET /staff/orders?status=&table_id=`
 - `POST /staff/orders/:id/confirm` · `/cancel` · `/done`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
-- `POST /staff/staff_calls/:id/resolve`
+- `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
+- `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
 
 **Manage**
 - `GET /manage/dashboard`
 - `GET/PATCH /manage/orders(/:id)`
 - CRUD `/manage/categories`, `/manage/menu_items`, `POST /manage/categories/:id/adjust_prices`
 - CRUD `/manage/tables`, `POST /manage/tables/:id/regenerate_qr`
-- `GET /manage/reports/revenue?from=&to=&group=day|month(&format=csv)` (owner)
+- `GET /manage/reports/revenue?from=&to=&group=day|month(&format=csv)` (owner; mặc định đầu tháng → hôm nay)
+- `GET /manage/orders?status=&date=&table_id=&page=` (30/trang)
 - CRUD `/manage/users` (owner)
 
 ---
 
 ## 7. Tech stack
-- **BE**: Rails 8.1 API (Ruby 3.3), bcrypt, jwt, pundit, sidekiq 8, rack-cors, redis, rqrcode, rspec + factory_bot
+- **BE**: Rails 8.1 API (Ruby 3.3), bcrypt, jwt, sidekiq 8, rack-cors, redis, rqrcode, rspec + factory_bot
 - **FE**: React 19 + Vite + TS, TailwindCSS, React Router, TanStack Query, Zustand, socket.io-client, qrcode.react
 - **Socket**: Node 22, socket.io, ioredis, jsonwebtoken
 
@@ -236,7 +248,7 @@ TZ=Asia/Ho_Chi_Minh
 ```
 
 ## 9. Seed data
-- Users (mật khẩu `password`): `owner@demo.vn`, `manager@demo.vn`, `waiter@demo.vn`, `kitchen@demo.vn`
+- Users (mật khẩu `password`): `owner@demo.vn`, `manager@demo.vn`, `waiter@demo.vn`, `waiter2@demo.vn`, `kitchen@demo.vn`
 - 10 bàn (Tầng 1: 1–6, Tầng 2: 7–10)
 - 6 category: Khai vị, Món chính, Lẩu, Đồ uống, Tráng miệng, Combo — ~35 món tiếng Việt
 - Lịch sử order 30 ngày (completed) cho báo cáo
@@ -267,8 +279,8 @@ restaurant-app/
 
 ## 12. Lộ trình triển khai
 - [x] **B1** Khung Docker + Makefile + Rails + React + socket chạy được `make setup`
-- [ ] **B2** Models, migrations, seed, auth, API
-- [ ] **B3** Realtime (publisher + socket rooms + auth)
+- [x] **B2** Models, migrations, seed, auth, API, publisher realtime phía server, rspec services
+- [ ] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung
 - [ ] **B4** User Site
 - [ ] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
 - [ ] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
@@ -289,3 +301,4 @@ restaurant-app/
 | 2026-10-13 | 1.0 | Khởi tạo spec. Chốt D1–D7. Thêm cơ chế định danh bàn (table session + verify code + sơ đồ bàn) |
 | 2026-10-13 | 1.1 | Sửa D3: QR tĩnh không đổi; chỉ session_token + verify_code đổi theo mỗi lượt khách. Thêm quy tắc 1 session open/bàn và chống order từ xa |
 | 2026-10-13 | 1.2 | B1 xong. Thêm D8 (Vite proxy 1 cổng). Port host: API 3001, DB 5433 (tránh xung đột). Chốt version: Rails 8.1, React 19, Node 22, Sidekiq 8. Định dạng message Redis + claims JWT socket |
+| 2026-10-13 | 1.3 | B2 xong. Phân quyền dùng `allow_roles` thay Pundit. Publisher realtime phía server làm luôn trong B2 → B3 chỉ còn phía client. Thêm room `guests`, event `staff_call.resolved`, `session.closed`, API bật lại món, danh sách gọi nhân viên. Bổ sung quy tắc nghiệp vụ |

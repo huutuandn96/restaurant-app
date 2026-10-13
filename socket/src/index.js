@@ -41,7 +41,7 @@ io.use((socket, next) => {
 
 io.on("connection", (socket) => {
   const { kind, role, table_session_id: sessionId } = socket.data.claims;
-  const rooms = kind === "guest" ? [`table_session:${sessionId}`] : ROLE_ROOMS[role] || [];
+  const rooms = kind === "guest" ? [`table_session:${sessionId}`, "guests"] : ROLE_ROOMS[role] || [];
   rooms.forEach((r) => socket.join(r));
   console.log(`[socket] connect ${socket.id} kind=${kind} rooms=${rooms.join(",")}`);
   socket.on("disconnect", () => console.log(`[socket] disconnect ${socket.id}`));
