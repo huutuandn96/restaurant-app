@@ -20,6 +20,11 @@ tables = (1..10).map do |n|
   Table.create!(number: n, area: n <= 6 ? "Tầng 1" : "Tầng 2", seats: [2, 4, 4, 6].sample)
 end
 
+# Ảnh minh hoạ SVG nằm ở web/public/images/menu (không cần internet)
+def vn_slug(s)
+  s.tr("đĐ", "dD").unicode_normalize(:nfd).gsub(/\p{Mn}/, "").downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-|-\z/, "")
+end
+
 puts "Menu..."
 MENU = {
   ["Khai vị", "salad"] => [
@@ -69,13 +74,11 @@ MENU = {
     ["Combo trưa văn phòng", 89_000, "Cơm + canh + nước"]
   ]
 }
-lock = 0
-MENU.each_with_index do |((cat_name, keyword), items), ci|
+MENU.each_with_index do |((cat_name, _keyword), items), ci|
   cat = Category.create!(name: cat_name, position: ci)
   items.each_with_index do |(name, price, desc), ii|
-    lock += 1
     cat.menu_items.create!(name:, price:, description: desc, position: ii,
-                           image_url: "https://loremflickr.com/480/360/#{keyword}?lock=#{lock}")
+                           image_url: "/images/menu/#{vn_slug(name)}.svg")
   end
 end
 MenuItem.find_by(name: "Lẩu riêu cua bắp bò").update!(available: false) # demo món hết
