@@ -34,8 +34,8 @@ module Api
 
         def checkout
           table = Table.find(params[:id])
-          TableSessions::Checkout.call(table, user: current_user)
-          render json: TableSerializer.call(table.reload)
+          session = TableSessions::Checkout.call(table, user: current_user)
+          render json: TableSerializer.call(table.reload).merge(closed_session_id: session.id)
         end
       end
     end

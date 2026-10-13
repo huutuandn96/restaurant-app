@@ -29,6 +29,9 @@ Rails.application.routes.draw do
           end
         end
         resources :order_items, only: :update
+        resources :table_sessions, only: [] do
+          get :bill, on: :member
+        end
         resources :menu_items, only: :update
         resources :staff_calls, only: :index do
           post :resolve, on: :member

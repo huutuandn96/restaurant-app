@@ -110,7 +110,12 @@ await sleep(300)
 ok(w.has('table.call_staff'), 'Phục vụ nhận "gọi nhân viên"')
 const board = (await call('GET', '/staff/tables', { token: waiter.token })).data.find((t) => t.id === table.id)
 ok(board.ready_orders === 1 && board.open_calls === 1, 'Sơ đồ bàn: 1 đơn sẵn sàng, 1 lượt gọi')
-await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
+const prov = (await call('GET', `/staff/table_sessions/${order.table_session_id}/bill`, { token: waiter.token })).data
+ok(prov.provisional && prov.total === afterOut.total && prov.lines.length === 1, `Phiếu tạm tính ${prov.bill_no}: ${prov.total}`)
+ok((await call('GET', `/staff/table_sessions/${order.table_session_id}/bill`, { token: kitchen.token })).status === 403, 'Bếp không in hoá đơn (403)')
+const closedRes = (await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })).data
+const finalBill = (await call('GET', `/staff/table_sessions/${closedRes.closed_session_id}/bill`, { token: waiter.token })).data
+ok(!finalBill.provisional && finalBill.cashier && finalBill.total === afterOut.total, `Hoá đơn sau thanh toán (thu ngân: ${finalBill.cashier})`)
 await sleep(400)
 ok(g.has('session.closed'), 'Khách nhận session.closed')
 ok(k.events.some((e) => e.event === 'order.updated' && e.payload.status === 'completed'), 'Bếp nhận completed (gỡ khỏi board)')

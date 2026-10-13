@@ -5,6 +5,8 @@ import { hasRole, ROLE_LABEL, useAuth } from '../../shared/auth'
 import { useSocket } from '../../shared/socket'
 import { notify, unlockAudio } from '../../shared/notify'
 import { toast, Toaster } from '../../shared/toast'
+import { getPref, printKitchenTicket } from '../../shared/print'
+import PrintHost from '../../shared/PrintHost'
 import ConnectionBadge from '../../shared/ConnectionBadge'
 import LoginPage from '../../shared/LoginPage'
 import type { Order, StaffCall } from '../../shared/types'
@@ -58,6 +60,8 @@ function StaffShell() {
           notify('new')
           toast(`🍳 Đơn mới: ${o.table.label} (#${o.code})`)
         }
+        // Thiết bị bếp bật "Tự in phiếu" → in ngay khi đơn được gửi xuống bếp
+        if (isKitchen && getPref('auto-kitchen', false)) printKitchenTicket(o)
       },
       'order.updated': (o) => {
         const prev = qc.getQueryData<Order[]>(keys.orders)?.find((x) => x.id === o.id)
@@ -141,6 +145,7 @@ function StaffShell() {
         ))}
       </nav>
       <Toaster />
+      <PrintHost />
     </div>
   )
 }

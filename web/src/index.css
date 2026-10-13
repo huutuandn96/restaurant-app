@@ -13,3 +13,21 @@ body { @apply bg-stone-50 text-stone-900 antialiased; -webkit-tap-highlight-colo
 
 .no-scrollbar { scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ---------- In phiếu 80mm (shared/print.tsx, SPEC §5.4) ---------- */
+/* Ẩn khỏi màn hình nhưng vẫn đo được chiều cao (display:none cho height = 0) */
+#print-host { position: fixed; left: -10000px; top: 0; }
+@media print {
+  body.printing-receipt > *:not(#print-host) { display: none !important; }
+  body.printing-receipt, body.printing-receipt #print-host { display: block; position: static; background: #fff; height: auto; }
+}
+.receipt { width: 72mm; padding: 2mm 4mm; color: #000; font: 12px/1.35 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+.receipt hr { border: 0; border-top: 1px dashed #000; margin: 6px 0; }
+.receipt .r-center { text-align: center; }
+.receipt .r-row { display: flex; justify-content: space-between; gap: 8px; }
+.receipt .r-small { font-size: 11px; }
+.receipt .r-lg { font-size: 15px; }
+.receipt .r-xl { font-size: 26px; font-weight: 800; letter-spacing: 1px; }
+.receipt .r-item { margin: 4px 0; }
+.receipt .r-note { font-size: 13px; font-style: italic; }
+.receipt .r-head { font-weight: 700; }

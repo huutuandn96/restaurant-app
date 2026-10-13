@@ -5,6 +5,8 @@ import { useNow } from '../../shared/useNow'
 import type { Order } from '../../shared/types'
 import { EmptyState, Modal, Spinner } from '../../shared/ui'
 import { useCalls, useCheckout, useResolveCall, useTableDetail } from './data'
+import { useAuth } from '../../shared/auth'
+import { getPref, printBill, setPref } from '../../shared/print'
 import OrderCard from './OrderCard'
 import { CancelOrderDialog, ConfirmOrderDialog } from './ConfirmDialogs'
 
@@ -19,6 +21,8 @@ export default function TableDetailPage() {
   const [confirming, setConfirming] = useState<Order | null>(null)
   const [cancelling, setCancelling] = useState<Order | null>(null)
   const [paying, setPaying] = useState(false)
+  const [billOnCheckout, setBillOnCheckout] = useState(() => getPref('bill-on-checkout', true))
+  const token = useAuth((s) => s.token)
 
   if (isPending || !data) return <div className="grid place-items-center py-16"><Spinner /></div>
 
@@ -78,12 +82,20 @@ export default function TableDetailPage() {
               <span>Tổng bàn ({orders.length} đơn)</span>
               <span className="text-2xl font-extrabold">{money(data.session_total)}</span>
             </div>
-            <button
-              onClick={() => setPaying(true)}
-              className="mt-3 w-full rounded-xl bg-brand-500 py-3 text-lg font-bold active:scale-[0.99]"
-            >
-              Thanh toán & đóng bàn
-            </button>
+            <div className="mt-3 flex gap-2">
+              <button
+                onClick={() => void printBill(data.session!.id, token)}
+                className="shrink-0 rounded-xl bg-white/10 px-3 py-3 text-sm font-semibold ring-1 ring-white/20"
+              >
+                🖨️ Tạm tính
+              </button>
+              <button
+                onClick={() => setPaying(true)}
+                className="flex-1 whitespace-nowrap rounded-xl bg-brand-500 py-3 font-bold active:scale-[0.99] sm:text-lg"
+              >
+                Thanh toán & đóng bàn
+              </button>
+            </div>
           </div>
         </>
       )}
@@ -100,9 +112,29 @@ export default function TableDetailPage() {
             </p>
           )}
           <p className="mt-2 text-xs text-stone-500">Đóng bàn: các đơn chuyển sang Hoàn thành, mã xác nhận cũ hết hiệu lực. QR trên bàn giữ nguyên.</p>
+          <label className="mt-3 flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={billOnCheckout}
+              onChange={(e) => {
+                setBillOnCheckout(e.target.checked)
+                setPref('bill-on-checkout', e.target.checked)
+              }}
+              className="h-4 w-4 accent-green-600"
+            />
+            🖨️ In hoá đơn sau khi đóng bàn
+          </label>
           <button
             disabled={checkout.isPending}
-            onClick={() => checkout.mutate(id, { onSuccess: () => { setPaying(false); navigate('/staff/tables') } })}
+            onClick={() =>
+              checkout.mutate(id, {
+                onSuccess: (t) => {
+                  setPaying(false)
+                  if (billOnCheckout) void printBill(t.closed_session_id, token)
+                  navigate('/staff/tables')
+                },
+              })
+            }
             className="mt-4 w-full rounded-xl bg-green-600 py-3 text-lg font-bold text-white disabled:opacity-60"
           >
             Đã thu tiền · Đóng bàn
