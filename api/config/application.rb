@@ -34,6 +34,8 @@ module Api
     # in config/environments, which are processed later.
     #
     config.time_zone = "Asia/Ho_Chi_Minh"
+    config.i18n.available_locales = %i[vi en]
+    config.i18n.default_locale = :vi
     config.active_job.queue_adapter = :sidekiq
     # Ảnh phục vụ qua Rails (proxy) → URL tương đối, điện thoại chỉ cần cổng web (SPEC D8, D9)
     config.active_storage.resolve_model_to_route = :rails_storage_proxy

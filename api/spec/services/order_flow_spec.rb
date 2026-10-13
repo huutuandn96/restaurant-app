@@ -78,6 +78,8 @@ RSpec.describe "Order flow" do
         .to raise_error(ServiceError)
       Orders::Transition.call(order, action: "set_status", user: manager, status: "completed")
       expect(order.reload.completed_at).to be_present
+      Orders::Transition.call(order, action: "set_status", user: manager, status: "cancelled", reason: "Khách bỏ về")
+      expect(order.reload.cancel_reason).to eq("Khách bỏ về")
     end
   end
 

@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.7 · **Ngày tạo:** 2026-10-13
+**Version:** 1.8 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -19,7 +19,7 @@
 | D4 | FE | React + Vite + **TypeScript** |
 | D5 | Vị trí | `/Users/macbook_320/personal/restaurant-app` |
 | D6 | Môi trường | Local, chạy toàn bộ bằng Docker Compose; QR dùng `LAN_IP` trong `.env` |
-| D7 | Tiền / giờ | VND (integer), timezone `Asia/Ho_Chi_Minh` |
+| D7 | Tiền / giờ / ngôn ngữ | VND (integer), timezone `Asia/Ho_Chi_Minh`, thông báo lỗi API tiếng Việt (`config/locales/vi.yml`) |
 | D8 | Một cổng truy cập | Client chỉ gọi `http://LAN_IP:5173`; Vite proxy `/api` + `/rails` → Rails, `/socket.io` → Socket server (không cần CORS/IP riêng cho API) |
 | D9 | Lưu file | **Active Storage + S3**. Local dùng **RustFS** (S3-compatible, container `s3`) thay MinIO (image MinIO không còn pull được). Ảnh phục vụ qua **Rails proxy** (`/rails/active_storage/...`, URL tương đối). Lên AWS S3: chỉ đổi `S3_*`, bỏ `S3_ENDPOINT` |
 
@@ -147,7 +147,7 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 - Báo hết món có option "Hết cả menu" → `menu_items.available = false` + broadcast.
 - Mọi đổi trạng thái ghi `order_events`.
 - Món đang được bếp xử lý: done hết (tính cả hết món) → order `ready`; còn món chưa xong → `preparing`.
-- Huỷ: phục vụ huỷ được đơn `pending`/`confirmed`; manager/owner huỷ được mọi đơn đang hoạt động.
+- Huỷ: phục vụ huỷ được đơn `pending`/`confirmed`; manager/owner huỷ được mọi đơn đang hoạt động. Lý do huỷ lưu ở `cancel_reason` (kể cả khi manager đổi trạng thái thủ công).
 - Xoá món đã có trong đơn → chỉ ẩn (`available=false`) để giữ lịch sử.
 - Chỉnh giá hàng loạt làm tròn tới 1.000đ.
 - **Ảnh món**: `has_one_attached :image`, variant `card` 480×360 webp (tạo sẵn bằng Sidekiq khi upload). API trả `image_url` = ảnh upload (proxy path) → nếu không có thì `image_url` link ngoài → nếu không có thì `null` (FE hiện ảnh mặc định). Chỉ nhận JPG/PNG/WEBP/HEIC, tối đa 5MB.
@@ -203,13 +203,14 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
   - [x] Mọi thao tác realtime về phục vụ + khách
 
 ### 5.3 Manage Site — mobile + iPad + desktop
-- [ ] Login (manager/owner)
-- [ ] **Dashboard hôm nay** (realtime): tổng order, chưa xác nhận, đang xử lý, done (ready+completed), huỷ, doanh thu (completed), bàn đang có khách, top 5 món
-- [ ] **Orders**: list + filter (trạng thái, ngày, bàn), chi tiết + lịch sử events, đổi trạng thái
-- [ ] **Menu**: CRUD category, CRUD món, bật/tắt, sửa giá; chỉnh giá hàng loạt theo category (± % hoặc ± số tiền)
-- [ ] **Bàn**: CRUD bàn, lưới QR (in 1 lần), tạo lại QR thủ công khi cần
-- [ ] **Báo cáo (owner)**: doanh thu theo ngày / khoảng ngày / tháng; bảng trên web + **Export CSV** (UTF-8 BOM)
-- [ ] **Nhân viên (owner)**: CRUD user, đổi role, khoá
+- [x] Login (manager/owner). Desktop: sidebar; mobile/iPad: thanh tab ngang trên đầu
+- [x] **Dashboard hôm nay** (realtime qua socket): doanh thu (đơn completed) + doanh thu đang phục vụ, bàn có khách, tổng đơn / chưa xác nhận / đang xử lý / đã xong / huỷ (bấm vào → danh sách đơn đã lọc), biểu đồ đơn theo trạng thái, top 5 món
+- [x] **Orders**: lọc theo ngày, bàn, trạng thái (giữ trên URL), phân trang 30/trang; bảng (desktop) / thẻ (mobile); chi tiết đơn + lịch sử (ai làm, lúc nào, lý do) + đổi trạng thái kèm lý do
+- [x] **Menu**: CRUD danh mục (thứ tự, ẩn/hiện), CRUD món + **upload ảnh lên S3** (xem trước, xoá ảnh), bật/tắt đang bán; **chỉnh giá hàng loạt** theo danh mục (tăng/giảm, %/đ, xem trước trước khi áp dụng)
+- [x] **Bàn & QR**: lưới QR mọi bàn, **in tất cả** (CSS in 3 cột, ẩn UI), thêm/sửa/xoá bàn, tạo lại QR (cảnh báo QR cũ mất hiệu lực)
+- [x] **Doanh thu (owner)**: nhanh: hôm nay / 7 ngày / tháng này / tháng trước / 12 tháng; hoặc chọn khoảng ngày + nhóm ngày/tháng; KPI + biểu đồ cột (hover xem số) + bảng; **Export CSV** (UTF-8 BOM)
+- [x] **Nhân viên (owner)**: thêm, sửa, đổi quyền, đổi mật khẩu, khoá (không tự khoá/đổi quyền chính mình)
+- Manager vào trang chỉ dành cho owner → tự về Dashboard
 
 ---
 
@@ -310,7 +311,7 @@ restaurant-app/
 - [x] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung, trang `/dev/realtime`
 - [x] **B4** User Site
 - [x] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
-- [ ] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
+- [x] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
 - [ ] **B7** Test E2E qua LAN trên điện thoại + README
 
 ## 13. Backlog (phase sau)
@@ -333,3 +334,4 @@ restaurant-app/
 | 2026-10-13 | 1.5 | B4 xong (User Site). Ảnh demo chuyển sang SVG local (loremflickr trả 401). Ghi rõ quy tắc POST/GET session phía khách |
 | 2026-10-13 | 1.6 | Thêm D9: Active Storage + S3, local dùng RustFS (MinIO không còn image). Upload/xoá ảnh món qua API manage. Ảnh demo chuyển lên S3. Vite proxy thêm `/rails`. Giỏ hàng tự đồng bộ với menu |
 | 2026-10-13 | 1.7 | B5 xong (Staff Site). Màn đối chiếu mã khi xác nhận, sơ đồ bàn màu theo trạng thái, board bếp có đồng hồ chờ, tab Món hết. Socket dev chuyển sang nodemon polling (node --watch không nhận thay đổi file qua bind mount trên macOS) |
+| 2026-10-13 | 1.8 | B6 xong (Manage Site). Lỗi validation tiếng Việt, mật khẩu tối thiểu 6 ký tự, lưu lý do huỷ khi manager đổi trạng thái |

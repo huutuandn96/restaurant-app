@@ -60,6 +60,7 @@ module Orders
       attrs[:ready_at] = now if @target == "ready"
       attrs[:completed_at] = @target == "completed" ? now : nil
       attrs[:cancelled_at] = @target == "cancelled" ? now : nil
+      attrs[:cancel_reason] = @target == "cancelled" ? @reason.presence : nil
       @order.update!(attrs)
     end
 

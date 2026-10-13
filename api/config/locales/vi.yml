@@ -1,0 +1,40 @@
+vi:
+  activerecord:
+    models:
+      user: Nhân viên
+      table: Bàn
+      menu_item: Món
+      category: Danh mục
+      order: Đơn
+    attributes:
+      user: { name: Họ tên, email: Email, password: Mật khẩu, role: Quyền }
+      table: { number: Số bàn, seats: Số chỗ, area: Khu vực }
+      menu_item: { name: Tên món, price: Giá, category: Danh mục, image: Ảnh }
+      category: { name: Tên danh mục }
+      order_item: { quantity: Số lượng }
+    errors:
+      messages:
+        record_invalid: "Dữ liệu không hợp lệ: %{errors}"
+        restrict_dependent_destroy:
+          has_one: "Không thể xoá vì đang có %{record} liên quan"
+          has_many: "Không thể xoá vì đang có %{record} liên quan"
+  errors:
+    format: "%{attribute} %{message}"
+    messages:
+      blank: không được để trống
+      taken: đã tồn tại
+      invalid: không hợp lệ
+      inclusion: không hợp lệ
+      not_a_number: phải là số
+      not_an_integer: phải là số nguyên
+      greater_than: phải lớn hơn %{count}
+      greater_than_or_equal_to: phải lớn hơn hoặc bằng %{count}
+      less_than_or_equal_to: phải nhỏ hơn hoặc bằng %{count}
+      too_short: quá ngắn (tối thiểu %{count} ký tự)
+      too_long: quá dài (tối đa %{count} ký tự)
+      confirmation: không khớp
+  support:
+    array:
+      words_connector: ", "
+      two_words_connector: " và "
+      last_word_connector: " và "
