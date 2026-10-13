@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.4 · **Ngày tạo:** 2026-10-13
+**Version:** 1.5 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -167,13 +167,17 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 
 ### 5.1 User Site — mobile only
-- [ ] Vào qua QR → tạo session → header: **"Bàn 05 · Mã 482"**
-- [ ] Tab category ngang (sticky) + search (debounce 300ms, bỏ dấu tiếng Việt)
-- [ ] Card món: ảnh, tên, mô tả ngắn, giá, nút +/−; món hết → mờ, disable
-- [ ] Giỏ hàng (bottom sheet, Zustand + persist theo session): sửa SL, ghi chú từng món, tổng tiền, nút **Đặt món**
-- [ ] Trang "Đơn của bàn": các order của session, trạng thái realtime từng món
-- [ ] Nút **Gọi nhân viên**
-- [ ] Session đã đóng / token hết hạn → màn "Vui lòng quét lại QR"
+- [x] Vào qua QR → tạo session → header: **"Bàn 05 · Mã 482"**
+- [x] Tab category ngang (sticky, scroll spy) + search (bỏ dấu tiếng Việt: gõ "lau" ra "Lẩu")
+- [x] Card món: ảnh, tên, mô tả ngắn, giá, nút +/−; món hết → mờ, disable (cập nhật realtime)
+- [x] Giỏ hàng (bottom sheet, Zustand + sessionStorage, gắn với session): sửa SL, ghi chú từng món + ghi chú cả đơn, tổng tiền, nút **Đặt món**; món vừa hết trong giỏ → chặn đặt
+- [x] Trang "Đơn của bàn": mã xác nhận lớn, các order của session, trạng thái realtime từng món, tổng bàn
+- [x] Nút **Gọi nhân viên**
+- [x] Session đã đóng / token hết hạn → màn "Cảm ơn quý khách, vui lòng quét lại QR"
+- [x] Toast realtime: đơn được xác nhận, món xong, món hết
+
+> Mở trang = `POST` session (quét QR); refetch sau đó = `GET /public/session` (không tự mở session mới cho máy cũ sau khi bàn đã thanh toán).
+> Ảnh món demo: SVG minh hoạ tại `web/public/images/menu/*.svg` (không phụ thuộc internet).
 
 ### 5.2 Staff Site — mobile + iPad
 - [ ] Login email + password (JWT)
@@ -287,7 +291,7 @@ restaurant-app/
 - [x] **B1** Khung Docker + Makefile + Rails + React + socket chạy được `make setup`
 - [x] **B2** Models, migrations, seed, auth, API, publisher realtime phía server, rspec services
 - [x] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung, trang `/dev/realtime`
-- [ ] **B4** User Site
+- [x] **B4** User Site
 - [ ] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
 - [ ] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
 - [ ] **B7** Test E2E qua LAN trên điện thoại + README
@@ -309,3 +313,4 @@ restaurant-app/
 | 2026-10-13 | 1.2 | B1 xong. Thêm D8 (Vite proxy 1 cổng). Port host: API 3001, DB 5433 (tránh xung đột). Chốt version: Rails 8.1, React 19, Node 22, Sidekiq 8. Định dạng message Redis + claims JWT socket |
 | 2026-10-13 | 1.3 | B2 xong. Phân quyền dùng `allow_roles` thay Pundit. Publisher realtime phía server làm luôn trong B2 → B3 chỉ còn phía client. Thêm room `guests`, event `staff_call.resolved`, `session.closed`, API bật lại món, danh sách gọi nhân viên. Bổ sung quy tắc nghiệp vụ |
 | 2026-10-13 | 1.4 | B3 xong. Bếp nhận cả event completed/cancelled của đơn đã xác nhận (để gỡ khỏi board). Mô tả lớp realtime phía client + trang `/dev/realtime` |
+| 2026-10-13 | 1.5 | B4 xong (User Site). Ảnh demo chuyển sang SVG local (loremflickr trả 401). Ghi rõ quy tắc POST/GET session phía khách |
