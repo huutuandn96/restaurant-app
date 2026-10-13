@@ -10,12 +10,13 @@ module Api
 
       private
 
-      attr_reader :current_user
+      attr_reader :current_user, :auth_method
 
       def authenticate!
         token = request.authorization.to_s.delete_prefix("Bearer ").presence
         claims = token && AuthToken.decode_user(token)
         @current_user = claims && User.active.find_by(id: claims["sub"])
+        @auth_method = claims && claims["amr"]
         render json: { error: "Chưa đăng nhập" }, status: :unauthorized unless @current_user
       end
 

@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.15 · **Ngày tạo:** 2026-10-13
+**Version:** 1.16 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -178,6 +178,14 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 | Báo cáo doanh thu + CSV | | | | ✓ |
 | Quản lý tài khoản nhân viên | | | | ✓ |
 
+### 4.1 Đăng nhập PIN (máy dùng chung)
+- Mỗi nhân viên có thể có **PIN 4–6 số** (bcrypt). Owner đặt / xoá ở Manage → Nhân viên; nhân viên tự đổi ở Staff → ⚙︎ → PIN của tôi (cần mật khẩu). Chặn PIN dễ đoán (trùng số, dãy liên tiếp).
+- Chỉ **máy đã ghi danh** mới đăng nhập PIN: quản lý / chủ (đăng nhập **bằng mật khẩu**) vào Staff → ⚙︎ → Máy dùng chung → đặt tên máy + tuỳ chọn tự khoá (5/15/30/60′). Máy giữ `device_token` ngẫu nhiên trong localStorage, server chỉ lưu SHA-256. Owner xem / **thu hồi** máy ở Manage → Nhân viên.
+- Máy đã ghi danh: màn đăng nhập Staff là lưới tên nhân viên có PIN → bàn phím số. Vẫn có lối “Đăng nhập bằng email & mật khẩu”. Nút Đăng xuất đổi thành **🔒 Khoá** (về màn PIN). Không thao tác quá thời gian đặt → tự khoá.
+- Sai PIN **5 lần liên tiếp → khoá PIN của người đó 5 phút** (HTTP 423), báo số lần còn lại.
+- JWT từ PIN mang `amr: "pin"`: dùng được Staff API, **Manage API từ chối (403)** và không ghi danh / thu hồi máy được. Manage site hiện màn đăng nhập mật khẩu nếu phiên hiện tại là PIN.
+- Seed: owner 9630, manager 2580, waiter 2468, waiter2 3690, kitchen 1470.
+
 ---
 
 ## 5. Chi tiết từng site
@@ -288,7 +296,8 @@ Ba loại, cấu hình ở **Manage → 🎟️ Khuyến mãi** (manager, owner)
 - `POST /public/orders` → tạo order
 - `POST /public/staff_calls`
 
-**Auth**: `POST /auth/login`, `GET /auth/me` → {user, token, socket_token}
+**Auth**: `POST /auth/login`, `GET /auth/me` → {user, token, socket_token, via}
+- PIN (§4.1): `GET /auth/pin/users` + `POST /auth/pin {user_id, pin}` (header `X-Device-Token`) · `PUT /auth/pin {pin, password}` · `GET/POST/DELETE /staff/devices` (manager, owner, đăng nhập mật khẩu)
 
 **Staff**
 - `GET /staff/tables` · `GET /staff/tables/:id` (session + orders)
@@ -432,13 +441,13 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 40 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 43 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
-- Login PIN cho nhân viên, PWA, push notification
+- PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
 ---
@@ -462,3 +471,4 @@ restaurant-app/
 | 2026-10-13 | 1.13 | Thêm §2.5 Chuyển / gộp bàn: `table_sessions.merged_into_id`, `TableSession.resolve` cho token khách, API move/merge, event `session.moved` / `session.merged`, app khách tự đổi bàn và giữ giỏ hàng. e2e 35 kiểm tra |
 | 2026-10-13 | 1.14 | Thêm §5.5 Đặt bàn trước (nhân viên nhập): bảng `reservations`, chặn trùng 2 giờ, giữ chỗ trên sơ đồ bàn, khách đến → mở phiên. Tab Đặt bàn ở Staff site, seed lượt đặt demo. e2e 37 kiểm tra |
 | 2026-10-13 | 1.15 | Thêm §5.6 Khuyến mãi: happy hour theo khung giờ (giá menu + snapshot giá gốc), mã voucher, giảm tay trên hoá đơn (phục vụ ≤10%). Phân bổ giảm giá vào `orders.discount`; doanh thu = Σ(total − discount). Trang Manage Khuyến mãi, seed demo. e2e 40 kiểm tra |
+| 2026-10-13 | 1.16 | Thêm §4.1 Đăng nhập PIN trên máy dùng chung đã ghi danh: bảng `devices`, PIN bcrypt, khoá 5′ sau 5 lần sai, tự khoá khi không thao tác, JWT `amr: pin` không vào Manage. e2e 43 kiểm tra |

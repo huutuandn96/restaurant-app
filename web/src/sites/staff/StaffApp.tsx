@@ -1,4 +1,4 @@
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { hasRole, ROLE_LABEL, useAuth } from '../../shared/auth'
@@ -17,24 +17,38 @@ import TableDetailPage from './TableDetailPage'
 import KitchenPage from './KitchenPage'
 import SoldOutPage from './SoldOutPage'
 import ReservationsPage from './ReservationsPage'
+import PinLogin from './PinLogin'
+import StaffSettings from './StaffSettings'
+import { loadDevice, type StaffDevice } from '../../shared/device'
+import { useIdleLock } from '../../shared/useIdleLock'
 
 export default function StaffApp() {
   const user = useAuth((s) => s.user)
+  // Máy dùng chung đã ghi danh → màn PIN (SPEC §4.1)
+  const [device, setDevice] = useState<StaffDevice | null>(loadDevice)
+  const [usePassword, setUsePassword] = useState(false)
+  const showPassword = useCallback(() => setUsePassword(true), [])
+  const revoked = useCallback(() => setDevice(null), [])
+
   if (!user || !hasRole(user, 'waiter', 'kitchen', 'manager', 'owner')) {
+    if (device && !usePassword) return <PinLogin device={device} onPassword={showPassword} onRevoked={revoked} />
     return (
       <LoginPage
         title="Staff"
         subtitle="Phục vụ & Bếp"
         demo={['waiter@demo.vn', 'waiter2@demo.vn', 'kitchen@demo.vn', 'manager@demo.vn']}
         allowed={['waiter', 'kitchen', 'manager', 'owner']}
+        extra={device && <button type="button" onClick={() => setUsePassword(false)} className="mt-3 w-full text-sm text-stone-500 underline">← Quay lại đăng nhập PIN</button>}
       />
     )
   }
-  return <StaffShell />
+  return <StaffShell device={device} onDevice={(d) => { setDevice(d); setUsePassword(false) }} />
 }
 
-function StaffShell() {
+function StaffShell({ device, onDevice }: { device: StaffDevice | null; onDevice: (d: StaffDevice | null) => void }) {
   const { user, socketToken, logout } = useAuth()
+  const [settings, setSettings] = useState(false)
+  useIdleLock(device?.lock_minutes, logout)
   const qc = useQueryClient()
   const isWaiter = hasRole(user, 'waiter', 'manager', 'owner')
   const isKitchen = hasRole(user, 'kitchen', 'manager', 'owner')
@@ -117,7 +131,8 @@ function StaffShell() {
         </div>
         <div className="flex items-center gap-3">
           <ConnectionBadge status={status} />
-          <button onClick={logout} className="text-xs text-stone-400 underline">Đăng xuất</button>
+          <button onClick={() => setSettings(true)} className="text-lg leading-none text-stone-400" aria-label="Cài đặt">⚙︎</button>
+          <button onClick={logout} className="text-xs text-stone-400 underline">{device ? '🔒 Khoá' : 'Đăng xuất'}</button>
         </div>
       </header>
 
@@ -153,6 +168,7 @@ function StaffShell() {
       </nav>
       <Toaster />
       <PrintHost />
+      {settings && <StaffSettings device={device} onDevice={onDevice} onClose={() => setSettings(false)} />}
     </div>
   )
 }

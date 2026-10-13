@@ -6,16 +6,17 @@ puts "Xoá dữ liệu cũ..."
 ActiveStorage::Attachment.delete_all
 ActiveStorage::VariantRecord.delete_all
 ActiveStorage::Blob.find_each(&:purge)
-[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, Voucher, Promotion, MenuItem, Category, Table, User].each(&:delete_all)
+[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, Voucher, Promotion, MenuItem, Category, Table, Device, User].each(&:delete_all)
 
 puts "Users..."
+# PIN demo cho đăng nhập trên máy dùng chung (SPEC §4.1)
 [
-  ["Chủ quán", "owner@demo.vn", "owner"],
-  ["Quản lý", "manager@demo.vn", "manager"],
-  ["Phục vụ An", "waiter@demo.vn", "waiter"],
-  ["Phục vụ Bình", "waiter2@demo.vn", "waiter"],
-  ["Bếp Cường", "kitchen@demo.vn", "kitchen"]
-].each { |name, email, role| User.create!(name:, email:, role:, password: "password") }
+  ["Chủ quán", "owner@demo.vn", "owner", "9630"],
+  ["Quản lý", "manager@demo.vn", "manager", "2580"],
+  ["Phục vụ An", "waiter@demo.vn", "waiter", "2468"],
+  ["Phục vụ Bình", "waiter2@demo.vn", "waiter", "3690"],
+  ["Bếp Cường", "kitchen@demo.vn", "kitchen", "1470"]
+].each { |name, email, role, pin| User.new(name:, email:, role:, password: "password").tap { |u| u.pin = pin }.save! }
 waiters = User.waiter.to_a
 kitchen = User.kitchen.first
 
@@ -207,3 +208,4 @@ Voucher.create!(code: "KHAITRUONG", kind: "percent", value: 20, ends_at: 10.days
 
 puts "Xong: #{User.count} users, #{Table.count} bàn, #{MenuItem.count} món, #{Order.count} đơn"
 puts "Đăng nhập (mật khẩu: password): owner@demo.vn, manager@demo.vn, waiter@demo.vn, kitchen@demo.vn"
+puts "PIN: owner 9630, manager 2580, waiter 2468, waiter2 3690, kitchen 1470"

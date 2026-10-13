@@ -7,6 +7,10 @@ Rails.application.routes.draw do
 
       post "auth/login", to: "auth#login"
       get "auth/me", to: "auth#me"
+      # Đăng nhập PIN trên máy đã ghi danh (SPEC §4.1)
+      get "auth/pin/users", to: "auth#pin_users"
+      post "auth/pin", to: "auth#pin_login"
+      put "auth/pin", to: "auth#update_pin"
 
       # Khách (SPEC §6)
       namespace :public do
@@ -32,6 +36,7 @@ Rails.application.routes.draw do
             post :done
           end
         end
+        resources :devices, only: %i[index create destroy]
         resources :order_items, only: :update do
           patch :batch, on: :collection
         end
