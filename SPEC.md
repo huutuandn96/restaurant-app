@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.13 · **Ngày tạo:** 2026-10-13
+**Version:** 1.14 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -245,6 +245,17 @@ In qua hộp thoại in của trình duyệt (máy in nhiệt 80mm cài trên th
 - Kỹ thuật: khổ giấy `80mm × <chiều cao phiếu>` (đo khi in, vì `@page size: 80mm auto` không hợp lệ). Nhiều lệnh in xếp hàng, in xong (`afterprint`) mới in tiếp. Khi in phiếu chỉ hiện phiếu, không ảnh hưởng in QR ở Manage.
 - Muốn in **không hiện hộp thoại** trên máy bếp: chạy Chrome với `--kiosk-printing` và đặt máy in nhiệt làm mặc định.
 
+### 5.5 Đặt bàn trước
+Nhân viên (phục vụ, quản lý, chủ) nhập khi khách gọi điện — Staff site, tab **📅 Đặt bàn**.
+
+- Lượt đặt: tên khách, SĐT, số người, ngày giờ đến, bàn, ghi chú. Trạng thái: `booked` → `arrived` / `cancelled` / `no_show`.
+- Danh sách theo ngày (mặc định hôm nay, ‹ › đổi ngày), đếm số lượt chờ + số khách. Thao tác: **Sửa**, **Huỷ**, **Khách đã đến**, **Không đến** (chỉ hiện khi đã trễ).
+- **Chặn trùng**: một bàn không có 2 lượt `booked` cách nhau dưới `RESERVATION_DURATION_MINUTES` (mặc định 120). Không đặt vào giờ đã qua.
+- **Giữ chỗ trên sơ đồ bàn**: bàn trống có lượt `booked` trong khoảng [giờ đến − `RESERVATION_HOLD_MINUTES` (60), giờ đến + 30′] hiện màu tím “📅 19:00 · Anh Minh (4)”, quá giờ hiện “trễ”. Không chặn khách vãng lai quét QR — phục vụ tự điều phối.
+- **Khách đã đến** → mở phiên cho bàn (khách quét QR là vào đúng phiên) và chuyển sang chi tiết bàn. Bàn đang có khách khác → báo lỗi, sửa lượt đặt sang bàn khác trước.
+- Form chọn bàn gợi ý bàn đủ chỗ cho số người trước.
+- Realtime: `reservation.updated` tới `waiters` + `managers`.
+
 ---
 
 ## 6. API (prefix `/api/v1`)
@@ -266,6 +277,7 @@ In qua hộp thoại in của trình duyệt (máy in nhiệt 80mm cài trên th
 - `POST /staff/orders/:id/confirm` · `/cancel` · `/done`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
 - `PATCH /staff/order_items/batch {ids[], status, mark_menu_unavailable}` — gom theo món (kitchen, manager, owner). Từ chối cả lô nếu có món thuộc đơn chưa xác nhận / đã kết thúc; trả về các đơn bị ảnh hưởng
+- `GET /staff/reservations?date=` · `POST /staff/reservations` · `PATCH /staff/reservations/:id` · `POST /staff/reservations/:id/arrive|cancel|no_show` (§5.5). `GET /staff/tables` trả thêm `reservation` (lượt đang giữ bàn)
 - `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
 - `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
 - `GET /staff/table_sessions/:id/bill` — dữ liệu in hoá đơn / tạm tính (waiter, manager, owner). Checkout trả thêm `closed_session_id`
@@ -315,6 +327,9 @@ RESTAURANT_NAME=Nhà hàng Demo         # in trên hoá đơn (§5.4)
 RESTAURANT_ADDRESS=
 RESTAURANT_PHONE=
 RESTAURANT_BILL_FOOTER=Cảm ơn quý khách, hẹn gặp lại!
+
+RESERVATION_DURATION_MINUTES=120   # §5.5 chặn đặt trùng
+RESERVATION_HOLD_MINUTES=60        # §5.5 giữ chỗ trên sơ đồ
 ```
 
 ### 8.2 Production (`.env.production.example` → `.env.production`, không commit)
@@ -393,13 +408,13 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 35 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 37 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
-- Đặt bàn trước, khuyến mãi / voucher
+- Khuyến mãi / voucher
 - Login PIN cho nhân viên, PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
@@ -422,3 +437,4 @@ restaurant-app/
 | 2026-10-13 | 1.11 | Thêm §5.4 In phiếu bếp & hoá đơn (80mm, qua trình duyệt): phiếu bếp thủ công / tự in, phiếu tạm tính, hoá đơn khi thanh toán, in lại từ Manage. API `GET /staff/table_sessions/:id/bill`, checkout trả `closed_session_id`. ENV `RESTAURANT_*`. e2e 33 kiểm tra |
 | 2026-10-13 | 1.12 | Bếp: chế độ xem *Theo món* (gom các phần chưa xong theo món, bắt đầu / xong / hết cả mẻ). API `PATCH /staff/order_items/batch`. e2e 34 kiểm tra |
 | 2026-10-13 | 1.13 | Thêm §2.5 Chuyển / gộp bàn: `table_sessions.merged_into_id`, `TableSession.resolve` cho token khách, API move/merge, event `session.moved` / `session.merged`, app khách tự đổi bàn và giữ giỏ hàng. e2e 35 kiểm tra |
+| 2026-10-13 | 1.14 | Thêm §5.5 Đặt bàn trước (nhân viên nhập): bảng `reservations`, chặn trùng 2 giờ, giữ chỗ trên sơ đồ bàn, khách đến → mở phiên. Tab Đặt bàn ở Staff site, seed lượt đặt demo. e2e 37 kiểm tra |

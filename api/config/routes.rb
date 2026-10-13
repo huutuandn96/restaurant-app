@@ -39,6 +39,13 @@ Rails.application.routes.draw do
           get :bill, on: :member
         end
         resources :menu_items, only: :update
+        resources :reservations, only: %i[index create update] do
+          member do
+            post :arrive
+            post :cancel
+            post :no_show
+          end
+        end
         resources :staff_calls, only: :index do
           post :resolve, on: :member
         end

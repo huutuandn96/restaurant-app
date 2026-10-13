@@ -2,9 +2,16 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { api } from '../../shared/api'
 import { useAuth } from '../../shared/auth'
 import { toast } from '../../shared/toast'
-import type { Order, OrderItemStatus, StaffCall, Table } from '../../shared/types'
+import type { Order, OrderItemStatus, Reservation, StaffCall, Table } from '../../shared/types'
 
-export type StaffTable = Table & { pending_orders: number; ready_orders: number; open_calls: number; session_total: number }
+export type TableHold = { id: number; customer_name: string; party_size: number; reserved_at: string; late: boolean }
+export type StaffTable = Table & {
+  pending_orders: number
+  ready_orders: number
+  open_calls: number
+  session_total: number
+  reservation: TableHold | null
+}
 export type TableDetail = Table & { orders: Order[]; session_total: number }
 
 export const keys = {
@@ -12,6 +19,7 @@ export const keys = {
   tables: ['staff', 'tables'] as const,
   table: (id: number) => ['staff', 'table', id] as const,
   calls: ['staff', 'calls'] as const,
+  reservations: (date: string) => ['staff', 'reservations', date] as const,
 }
 
 const useToken = () => useAuth((s) => s.token)
@@ -113,6 +121,39 @@ export function useMoveTable() {
       }),
     onSuccess: (t, v) => {
       toast(v.mode === 'move' ? `Đã chuyển sang ${t.label}` : `Đã gộp vào ${t.label}`)
+      void qc.invalidateQueries({ queryKey: ['staff'] })
+    },
+    onError: (e) => toast(e.message, 'error'),
+  })
+}
+
+export function useReservations(date: string) {
+  const token = useToken()
+  return useQuery({ queryKey: keys.reservations(date), queryFn: () => api<Reservation[]>(`/staff/reservations?date=${date}`, { token }) })
+}
+
+export type ReservationInput = {
+  table_id: number
+  customer_name: string
+  phone: string
+  party_size: number
+  reserved_at: string
+  note: string
+}
+
+// Tạo / sửa / khách đến / huỷ / không đến (SPEC §5.5)
+export function useReservationAction() {
+  const qc = useQueryClient()
+  const token = useToken()
+  return useMutation({
+    mutationFn: (v: { action: 'create' } & ReservationInput | { action: 'update'; id: number } & ReservationInput | { action: 'arrive' | 'cancel' | 'no_show'; id: number }) => {
+      if (v.action === 'create') return api<Reservation>('/staff/reservations', { method: 'POST', token, body: v })
+      if (v.action === 'update') return api<Reservation>(`/staff/reservations/${v.id}`, { method: 'PATCH', token, body: v })
+      return api<Reservation>(`/staff/reservations/${v.id}/${v.action}`, { method: 'POST', token })
+    },
+    onSuccess: (r, v) => {
+      const msg = { create: 'Đã đặt bàn', update: 'Đã cập nhật', arrive: `Đã mở ${r.table.label} cho khách`, cancel: 'Đã huỷ lượt đặt', no_show: 'Đã đánh dấu không đến' }
+      toast(msg[v.action])
       void qc.invalidateQueries({ queryKey: ['staff'] })
     },
     onError: (e) => toast(e.message, 'error'),

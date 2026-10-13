@@ -145,6 +145,15 @@ if (free) {
   await call('POST', `/staff/tables/${free.id}/move`, { token: waiter.token, body: { to_table_id: table.id } })
 } else ok(false, 'Không có bàn trống để thử chuyển bàn')
 
+console.log('\n8. Đặt bàn trước')
+const when = new Date(Date.now() + 3 * 86400_000)
+when.setHours(11, 0, 0, 0)
+const rBody = { table_id: table.id, customer_name: 'E2E', phone: '0900000000', party_size: 2, reserved_at: when.toISOString() }
+const r1 = await call('POST', '/staff/reservations', { token: waiter.token, body: rBody })
+const r2 = await call('POST', '/staff/reservations', { token: waiter.token, body: { ...rBody, reserved_at: new Date(when.getTime() + 3600_000).toISOString() } })
+ok(r1.status === 201 && r2.status === 422, `Đặt ${table.label} 11:00; đặt trùng 12:00 bị chặn`)
+ok((await call('POST', `/staff/reservations/${r1.data.id}/cancel`, { token: waiter.token })).data.status === 'cancelled', 'Huỷ lượt đặt')
+
 // Dọn: đóng phiên vừa mở ở bước kiểm tra quét lại
 await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
 ;[g, w, k, m].forEach((x) => x.socket.disconnect())

@@ -6,12 +6,14 @@ vi:
       menu_item: Món
       category: Danh mục
       order: Đơn
+      reservation: Lượt đặt bàn
     attributes:
       user: { name: Họ tên, email: Email, password: Mật khẩu, role: Quyền }
       table: { number: Số bàn, seats: Số chỗ, area: Khu vực }
       menu_item: { name: Tên món, price: Giá, category: Danh mục, image: Ảnh }
       category: { name: Tên danh mục }
       order_item: { quantity: Số lượng }
+      reservation: { table: Bàn, customer_name: Tên khách, phone: Số điện thoại, party_size: Số người, reserved_at: Giờ đến }
     errors:
       messages:
         record_invalid: "Dữ liệu không hợp lệ: %{errors}"
@@ -22,6 +24,7 @@ vi:
     format: "%{attribute} %{message}"
     messages:
       blank: không được để trống
+      required: không được để trống
       taken: đã tồn tại
       invalid: không hợp lệ
       inclusion: không hợp lệ

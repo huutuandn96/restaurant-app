@@ -1,6 +1,6 @@
 import type React from 'react'
 import { Link } from 'react-router-dom'
-import { money, minutesAgo } from '../../shared/format'
+import { money, minutesAgo, time } from '../../shared/format'
 import { useNow } from '../../shared/useNow'
 import { Spinner } from '../../shared/ui'
 import { useTables, type StaffTable } from './data'
@@ -41,7 +41,9 @@ function TableTile({ t, now }: { t: StaffTable; now: number }) {
       ? 'bg-green-500 text-white ring-green-600'
       : t.status === 'occupied'
         ? 'bg-brand-100 text-brand-700 ring-brand-500/40'
-        : 'bg-white text-stone-400 ring-stone-200'
+        : t.reservation
+          ? 'bg-violet-50 text-violet-700 ring-violet-300'
+          : 'bg-white text-stone-400 ring-stone-200'
   return (
     <Link to={`/staff/tables/${t.id}`} className={`relative flex aspect-square flex-col items-center justify-center rounded-2xl p-2 ring-2 ${tone}`}>
       <div className="text-3xl font-extrabold">{String(t.number).padStart(2, '0')}</div>
@@ -50,6 +52,11 @@ function TableTile({ t, now }: { t: StaffTable; now: number }) {
           <div className="font-mono text-xs font-bold opacity-90">Mã {t.session.verify_code}</div>
           <div className="text-[11px] opacity-80">{money(t.session_total)}</div>
           <div className="text-[10px] opacity-70">{minutesAgo(t.session.opened_at, now)}</div>
+        </>
+      ) : t.reservation ? (
+        <>
+          <div className="text-xs font-bold">📅 {time(t.reservation.reserved_at)}{t.reservation.late && ' · trễ'}</div>
+          <div className="max-w-full truncate text-[11px]">{t.reservation.customer_name} ({t.reservation.party_size})</div>
         </>
       ) : (
         <div className="text-xs">Trống</div>
@@ -71,6 +78,7 @@ function Legend() {
     ['bg-red-500', 'Đơn chờ / gọi NV'],
     ['bg-green-500', 'Có món sẵn sàng'],
     ['bg-brand-100 ring-1 ring-brand-500/40', 'Có khách'],
+    ['bg-violet-50 ring-1 ring-violet-300', 'Giữ chỗ (đặt trước)'],
     ['bg-white ring-1 ring-stone-300', 'Trống'],
   ]
   return (

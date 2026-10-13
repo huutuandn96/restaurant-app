@@ -1,6 +1,7 @@
 class Table < ApplicationRecord
   has_many :table_sessions, dependent: :restrict_with_error
   has_many :orders, dependent: :restrict_with_error
+  has_many :reservations, dependent: :restrict_with_error
   has_one :open_session, -> { where(status: "open") }, class_name: "TableSession"
 
   enum :status, { available: "available", occupied: "occupied" }, validate: true

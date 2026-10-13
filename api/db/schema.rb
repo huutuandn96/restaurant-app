@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_000001) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -114,6 +114,27 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000001) do
     t.index ["table_session_id"], name: "index_orders_on_table_session_id"
   end
 
+  create_table "reservations", force: :cascade do |t|
+    t.bigint "table_id", null: false
+    t.string "customer_name", null: false
+    t.string "phone", null: false
+    t.integer "party_size", null: false
+    t.datetime "reserved_at", null: false
+    t.string "note"
+    t.string "status", default: "booked", null: false
+    t.bigint "created_by_id"
+    t.bigint "table_session_id"
+    t.datetime "arrived_at"
+    t.datetime "cancelled_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["created_by_id"], name: "index_reservations_on_created_by_id"
+    t.index ["reserved_at"], name: "index_reservations_on_reserved_at"
+    t.index ["table_id", "reserved_at"], name: "index_reservations_on_table_id_and_reserved_at"
+    t.index ["table_id"], name: "index_reservations_on_table_id"
+    t.index ["table_session_id"], name: "index_reservations_on_table_session_id"
+  end
+
   create_table "staff_calls", force: :cascade do |t|
     t.bigint "table_session_id", null: false
     t.string "status", default: "open", null: false
@@ -176,6 +197,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000001) do
   add_foreign_key "orders", "table_sessions"
   add_foreign_key "orders", "tables"
   add_foreign_key "orders", "users", column: "confirmed_by_id"
+  add_foreign_key "reservations", "table_sessions"
+  add_foreign_key "reservations", "tables"
+  add_foreign_key "reservations", "users", column: "created_by_id"
   add_foreign_key "staff_calls", "table_sessions"
   add_foreign_key "staff_calls", "users", column: "resolved_by_id"
   add_foreign_key "table_sessions", "table_sessions", column: "merged_into_id"

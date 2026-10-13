@@ -16,6 +16,7 @@ import TablesPage from './TablesPage'
 import TableDetailPage from './TableDetailPage'
 import KitchenPage from './KitchenPage'
 import SoldOutPage from './SoldOutPage'
+import ReservationsPage from './ReservationsPage'
 
 export default function StaffApp() {
   const user = useAuth((s) => s.user)
@@ -63,6 +64,10 @@ function StaffShell() {
         // Thiết bị bếp bật "Tự in phiếu" → in ngay khi đơn được gửi xuống bếp
         if (isKitchen && getPref('auto-kitchen', false)) printKitchenTicket(o)
       },
+      'reservation.updated': () => {
+        void qc.invalidateQueries({ queryKey: ['staff', 'reservations'] })
+        void qc.invalidateQueries({ queryKey: keys.tables })
+      },
       'order.updated': (o) => {
         const prev = qc.getQueryData<Order[]>(keys.orders)?.find((x) => x.id === o.id)
         onOrder(o)
@@ -98,6 +103,7 @@ function StaffShell() {
   const nav = [
     isWaiter && { to: '/staff/orders', label: 'Đơn', icon: '🧾', badge: pendingCount },
     isWaiter && { to: '/staff/tables', label: 'Bàn', icon: '🪑', badge: callCount },
+    isWaiter && { to: '/staff/reservations', label: 'Đặt bàn', icon: '📅', badge: 0 },
     isKitchen && { to: '/staff/kitchen', label: 'Bếp', icon: '🍳', badge: kitchenCount },
     isKitchen && { to: '/staff/sold-out', label: 'Món hết', icon: '🚫', badge: 0 },
   ].filter(Boolean) as { to: string; label: string; icon: string; badge: number }[]
@@ -121,6 +127,7 @@ function StaffShell() {
           {isWaiter && <Route path="orders" element={<WaiterOrdersPage />} />}
           {isWaiter && <Route path="tables" element={<TablesPage />} />}
           {isWaiter && <Route path="tables/:id" element={<TableDetailPage />} />}
+          {isWaiter && <Route path="reservations" element={<ReservationsPage />} />}
           {isKitchen && <Route path="kitchen" element={<KitchenPage />} />}
           {isKitchen && <Route path="sold-out" element={<SoldOutPage />} />}
           <Route path="*" element={<Navigate to="/staff" replace />} />
