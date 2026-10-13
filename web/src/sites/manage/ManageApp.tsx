@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { hasRole, ROLE_LABEL, useAuth } from '../../shared/auth'
 import { useSocket } from '../../shared/socket'
 import { Toaster } from '../../shared/toast'
+import PrintHost from '../../shared/PrintHost'
 import ConnectionBadge from '../../shared/ConnectionBadge'
 import LoginPage from '../../shared/LoginPage'
 import DashboardPage from './DashboardPage'
@@ -114,6 +115,7 @@ function Shell() {
         </main>
       </div>
       <Toaster />
+      <PrintHost />
     </div>
   )
 }

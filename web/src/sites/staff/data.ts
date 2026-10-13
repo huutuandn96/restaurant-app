@@ -88,7 +88,8 @@ export function useCheckout() {
   const qc = useQueryClient()
   const token = useToken()
   return useMutation({
-    mutationFn: (tableId: number) => api<Table>(`/staff/tables/${tableId}/checkout`, { method: 'POST', token }),
+    mutationFn: (tableId: number) =>
+      api<Table & { closed_session_id: number }>(`/staff/tables/${tableId}/checkout`, { method: 'POST', token }),
     onSuccess: (t) => {
       toast(`${t.label} đã thanh toán & đóng bàn`)
       void qc.invalidateQueries({ queryKey: ['staff'] })

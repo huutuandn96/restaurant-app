@@ -100,3 +100,19 @@ export type RealtimeEvents = {
   'session.closed': { table_session_id: number }
 }
 export type RealtimeEventName = keyof RealtimeEvents
+
+// Hoá đơn theo phiên bàn (Bills::Build)
+export type Bill = {
+  bill_no: string
+  table_session_id: number
+  table: TableRef
+  provisional: boolean
+  opened_at: string
+  closed_at: string | null
+  cashier: string | null
+  order_codes: string[]
+  lines: { name: string; price: number; quantity: number; amount: number }[]
+  total: number
+  restaurant: { name: string; address: string | null; phone: string | null; footer: string }
+  printed_at: string
+}

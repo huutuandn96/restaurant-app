@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.10 · **Ngày tạo:** 2026-10-13
+**Version:** 1.11 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -213,6 +213,21 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - [x] **Nhân viên (owner)**: thêm, sửa, đổi quyền, đổi mật khẩu, khoá (không tự khoá/đổi quyền chính mình)
 - Manager vào trang chỉ dành cho owner → tự về Dashboard
 
+### 5.4 In phiếu bếp & hoá đơn
+In qua hộp thoại in của trình duyệt (máy in nhiệt 80mm cài trên thiết bị, hoặc in ra PDF). Không cần phần mềm in riêng.
+
+| Phiếu | Ai in | Khi nào | Nội dung |
+|---|---|---|---|
+| **Phiếu bếp** | Bếp | Nút 🖨️ In trên từng đơn; hoặc bật **Tự in phiếu** (lưu theo thiết bị) → in ngay khi nhận `order.confirmed` | Bàn (chữ lớn), mã đơn, giờ đặt / gửi bếp, phục vụ xác nhận, món + ghi chú từng món, ghi chú đơn. Bỏ món đã hết |
+| **Phiếu tạm tính** | Phục vụ | Nút 🖨️ Tạm tính ở chi tiết bàn (phiên đang mở) | Như hoá đơn, ghi "PHIẾU TẠM TÍNH, chưa thanh toán" |
+| **Hoá đơn** | Phục vụ | Tick "In hoá đơn sau khi đóng bàn" (mặc định bật, lưu theo thiết bị) khi Thanh toán | Tên/địa chỉ/SĐT quán, số HĐ `HD` + 6 số (id phiên), bàn, giờ vào/ra, thu ngân, món gộp theo tên + đơn giá (bỏ món hết, đơn huỷ), tổng, lời cảm ơn |
+| In lại | Quản lý | Chi tiết đơn ở Manage → **In hoá đơn bàn** / **In phiếu bếp** | Hoá đơn của cả phiên chứa đơn đó |
+
+- Tổng trên hoá đơn = tổng phiên (cùng quy tắc doanh thu).
+- Thông tin quán lấy từ ENV `RESTAURANT_NAME`, `RESTAURANT_ADDRESS`, `RESTAURANT_PHONE`, `RESTAURANT_BILL_FOOTER`.
+- Kỹ thuật: khổ giấy `80mm × <chiều cao phiếu>` (đo khi in, vì `@page size: 80mm auto` không hợp lệ). Nhiều lệnh in xếp hàng, in xong (`afterprint`) mới in tiếp. Khi in phiếu chỉ hiện phiếu, không ảnh hưởng in QR ở Manage.
+- Muốn in **không hiện hộp thoại** trên máy bếp: chạy Chrome với `--kiosk-printing` và đặt máy in nhiệt làm mặc định.
+
 ---
 
 ## 6. API (prefix `/api/v1`)
@@ -234,6 +249,7 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
 - `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
 - `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
+- `GET /staff/table_sessions/:id/bill` — dữ liệu in hoá đơn / tạm tính (waiter, manager, owner). Checkout trả thêm `closed_session_id`
 
 **Manage**
 - `GET /manage/dashboard`
@@ -275,6 +291,11 @@ S3_SECRET_KEY=s3admin123
 S3_BUCKET=restaurant-dev
 S3_REGION=ap-southeast-1
 S3_CONSOLE_PORT=9001
+
+RESTAURANT_NAME=Nhà hàng Demo         # in trên hoá đơn (§5.4)
+RESTAURANT_ADDRESS=
+RESTAURANT_PHONE=
+RESTAURANT_BILL_FOOTER=Cảm ơn quý khách, hẹn gặp lại!
 ```
 
 ### 8.2 Production (`.env.production.example` → `.env.production`, không commit)
@@ -353,12 +374,12 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 30 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 33 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
-- Thanh toán online (VietQR/MoMo), in bill / in phiếu bếp
+- Thanh toán online (VietQR/MoMo)
 - Gộp / chuyển bàn, đặt bàn trước, khuyến mãi / voucher
 - Bếp: chế độ gom theo món
 - Login PIN cho nhân viên, PWA, push notification
@@ -380,3 +401,4 @@ restaurant-app/
 | 2026-10-13 | 1.8 | B6 xong (Manage Site). Lỗi validation tiếng Việt, mật khẩu tối thiểu 6 ký tự, lưu lý do huỷ khi manager đổi trạng thái |
 | 2026-10-13 | 1.9 | B7 xong: `make e2e` (30 kiểm tra REST + realtime + ảnh), đã chạy qua LAN và trên bản clone sạch (`make setup` từ đầu). README đầy đủ (test trên điện thoại, kịch bản test, xử lý sự cố). Sửa `make help`. MVP hoàn tất |
 | 2026-10-13 | 1.10 | Thêm D10: tách `docker-compose.prod.yml` (nginx, image production, không RustFS) và `.env.production.example`. Hỗ trợ Cloudflare R2. Thêm `PUBLIC_URL` cho QR, `FORCE_SSL`, lệnh `make prod-*`. Đã chạy thử stack prod trên máy (thay R2 bằng RustFS), e2e 30/30 |
+| 2026-10-13 | 1.11 | Thêm §5.4 In phiếu bếp & hoá đơn (80mm, qua trình duyệt): phiếu bếp thủ công / tự in, phiếu tạm tính, hoá đơn khi thanh toán, in lại từ Manage. API `GET /staff/table_sessions/:id/bill`, checkout trả `closed_session_id`. ENV `RESTAURANT_*`. e2e 33 kiểm tra |

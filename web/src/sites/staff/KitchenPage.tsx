@@ -4,6 +4,7 @@ import { useNow } from '../../shared/useNow'
 import type { Order, OrderItem } from '../../shared/types'
 import { EmptyState, ItemStatus, Modal, Spinner } from '../../shared/ui'
 import { useActiveOrders, useDoneOrder, useUpdateItem } from './data'
+import { getPref, printKitchenTicket, setPref } from '../../shared/print'
 
 const FILTERS = [
   { key: 'todo', label: 'Cần làm', statuses: ['confirmed', 'preparing'] },
@@ -19,6 +20,7 @@ export default function KitchenPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['key']>('todo')
   const [tableId, setTableId] = useState<number | 'all'>('all')
   const [soldOut, setSoldOut] = useState<{ order: Order; item: OrderItem } | null>(null)
+  const [autoPrint, setAutoPrint] = useState(() => getPref('auto-kitchen', false))
 
   const kitchenOrders = useMemo(() => (data ?? []).filter((o) => ['confirmed', 'preparing', 'ready'].includes(o.status)), [data])
   const tables = useMemo(
@@ -47,7 +49,19 @@ export default function KitchenPage() {
             )
           })}
         </div>
-        <div className="no-scrollbar flex gap-2 overflow-x-auto">
+        <div className="no-scrollbar flex items-center gap-2 overflow-x-auto">
+          <label className="flex shrink-0 items-center gap-1.5 rounded-full bg-white px-3 py-1 text-xs font-semibold text-stone-600 ring-1 ring-stone-200">
+            <input
+              type="checkbox"
+              checked={autoPrint}
+              onChange={(e) => {
+                setAutoPrint(e.target.checked)
+                setPref('auto-kitchen', e.target.checked)
+              }}
+              className="h-3.5 w-3.5 accent-brand-500"
+            />
+            🖨️ Tự in phiếu
+          </label>
           <TableChip active={tableId === 'all'} onClick={() => setTableId('all')}>Tất cả bàn</TableChip>
           {tables.map((t) => (
             <TableChip key={t.id} active={tableId === t.id} onClick={() => setTableId(t.id)}>{t.label}</TableChip>
@@ -140,6 +154,9 @@ function KitchenCard({ order, now, onSoldOut }: { order: Order; now: number; onS
       </ul>
       <footer className="flex items-center justify-between gap-2 border-t border-stone-100 px-4 py-3">
         <span className="text-sm text-stone-500">{finished}/{order.items.length} món</span>
+        <button onClick={() => printKitchenTicket(order)} aria-label="In phiếu bếp" className="ml-auto rounded-xl bg-stone-100 px-3 py-2.5 text-sm font-semibold text-stone-600">
+          🖨️ In
+        </button>
         {!isReady && (
           <button
             disabled={doneAll.isPending}
