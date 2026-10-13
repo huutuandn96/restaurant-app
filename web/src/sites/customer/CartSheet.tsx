@@ -6,8 +6,8 @@ import { money } from '../../shared/format'
 import type { Order } from '../../shared/types'
 import { useGuest } from './session'
 import { cartTotal, useCart } from './cart'
-import { FoodImage, QtyControl } from './ui'
-import { toast } from './toast'
+import { FoodImage, QtyControl } from '../../shared/ui'
+import { toast } from '../../shared/toast'
 
 export default function CartSheet({ onClose }: { onClose: () => void }) {
   const { session, qrToken, refetch } = useGuest()

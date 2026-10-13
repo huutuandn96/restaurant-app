@@ -8,8 +8,8 @@ import type { SocketStatus } from '../../shared/socket'
 import { useGuest } from './session'
 import { cartCount, cartTotal, useCart } from './cart'
 import CartSheet from './CartSheet'
-import { FoodImage, QtyControl, Spinner } from './ui'
-import { toast } from './toast'
+import { FoodImage, QtyControl, Spinner } from '../../shared/ui'
+import { toast } from '../../shared/toast'
 
 export type MenuData = { categories: Category[] }
 

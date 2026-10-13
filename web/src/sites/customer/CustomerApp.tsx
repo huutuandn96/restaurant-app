@@ -10,8 +10,8 @@ import { useCart } from './cart'
 import type { MenuData } from './MenuPage'
 import MenuPage from './MenuPage'
 import OrdersPage from './OrdersPage'
-import { Spinner } from './ui'
-import { Toaster, toast } from './toast'
+import { Spinner } from '../../shared/ui'
+import { Toaster, toast } from '../../shared/toast'
 
 const isClosedError = (e: unknown) => e instanceof ApiError && (e.status === 410 || e.status === 401)
 
