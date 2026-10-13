@@ -98,6 +98,9 @@ export type RealtimeEvents = {
   'table.updated': Table
   'menu_item.updated': MenuItem
   'session.closed': { table_session_id: number }
+  // Chuyển / gộp bàn (SPEC §2.5): table = bàn mới của khách
+  'session.moved': { table_session_id: number; table: Table }
+  'session.merged': { table_session_id: number; table: Table }
 }
 export type RealtimeEventName = keyof RealtimeEvents
 

@@ -136,6 +136,15 @@ const csvBytes = new Uint8Array(await csvRes.arrayBuffer())
 const hasBom = csvBytes[0] === 0xef && csvBytes[1] === 0xbb && csvBytes[2] === 0xbf
 ok(csvRes.status === 200 && hasBom && new TextDecoder().decode(csvBytes).startsWith('Ngày'), 'Owner xuất CSV (UTF-8 BOM)')
 
+console.log('\n7. Chuyển bàn')
+const free = (await call('GET', '/staff/tables', { token: waiter.token })).data.find((t) => !t.session && t.id !== table.id)
+if (free) {
+  await call('POST', `/staff/tables/${table.id}/move`, { token: waiter.token, body: { to_table_id: free.id } })
+  const moved = (await call('GET', '/public/session', { session: next.session_token })).data
+  ok(moved.table.id === free.id && moved.verify_code === next.verify_code, `Chuyển sang ${free.label}: khách giữ token + mã`)
+  await call('POST', `/staff/tables/${free.id}/move`, { token: waiter.token, body: { to_table_id: table.id } })
+} else ok(false, 'Không có bàn trống để thử chuyển bàn')
+
 // Dọn: đóng phiên vừa mở ở bước kiểm tra quét lại
 await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
 ;[g, w, k, m].forEach((x) => x.socket.disconnect())

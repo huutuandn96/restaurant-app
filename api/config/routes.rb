@@ -19,7 +19,11 @@ Rails.application.routes.draw do
 
       namespace :staff do
         resources :tables, only: %i[index show] do
-          post :checkout, on: :member
+          member do
+            post :checkout
+            post :move
+            post :merge
+          end
         end
         resources :orders, only: %i[index show] do
           member do

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Route, Routes, useParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { ApiError } from '../../shared/api'
@@ -40,8 +40,14 @@ export default function CustomerApp() {
     retry: (n, e) => !isClosedError(e) && n < 2,
   })
 
+  // Gộp bàn đổi sang token của phiên đích → giữ nguyên giỏ hàng thay vì xoá như phiên mới
+  const keepCart = useRef(false)
   useEffect(() => {
-    if (token) bindSession(token)
+    if (!token) return
+    if (keepCart.current) {
+      keepCart.current = false
+      useCart.setState({ sessionToken: token })
+    } else bindSession(token)
   }, [token, bindSession])
 
   useEffect(() => {
@@ -91,6 +97,19 @@ export default function CustomerApp() {
         )
       },
       'session.closed': () => setClosed(true),
+      // Chuyển bàn: cùng phiên, chỉ đổi số bàn (SPEC §2.5)
+      'session.moved': (p) => {
+        toast(`Bàn của bạn đã chuyển sang ${p.table.label}`)
+        notify('ready')
+        refetch()
+      },
+      // Gộp bàn: mở lại bằng token cũ → server trả phiên đích (token + mã mới)
+      'session.merged': (p) => {
+        toast(`Bàn đã được gộp vào ${p.table.label}, bạn vẫn gọi món bình thường`)
+        notify('ready')
+        keepCart.current = true
+        void qc.invalidateQueries({ queryKey: ['guest-open', qrToken] })
+      },
     },
   })
 

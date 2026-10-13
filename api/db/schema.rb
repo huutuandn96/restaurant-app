@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_13_050145) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -135,7 +135,9 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_050145) do
     t.bigint "closed_by_id"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.bigint "merged_into_id"
     t.index ["closed_by_id"], name: "index_table_sessions_on_closed_by_id"
+    t.index ["merged_into_id"], name: "index_table_sessions_on_merged_into_id"
     t.index ["session_token"], name: "index_table_sessions_on_session_token", unique: true
     t.index ["table_id"], name: "index_table_sessions_on_table_id"
     t.index ["table_id"], name: "index_table_sessions_one_open_per_table", unique: true, where: "((status)::text = 'open'::text)"
@@ -176,6 +178,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_13_050145) do
   add_foreign_key "orders", "users", column: "confirmed_by_id"
   add_foreign_key "staff_calls", "table_sessions"
   add_foreign_key "staff_calls", "users", column: "resolved_by_id"
+  add_foreign_key "table_sessions", "table_sessions", column: "merged_into_id"
   add_foreign_key "table_sessions", "tables"
   add_foreign_key "table_sessions", "users", column: "closed_by_id"
 end

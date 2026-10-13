@@ -7,8 +7,7 @@ module Api
 
         def current_session
           @current_session ||= begin
-            token = request.headers["X-Session-Token"].presence
-            s = token && TableSession.includes(:table).find_by(session_token: token)
+            s = TableSession.resolve(request.headers["X-Session-Token"])
             raise ServiceError.new("Phiên không hợp lệ, vui lòng quét lại QR", status: :unauthorized) unless s
             raise ServiceError.new("Bàn đã thanh toán, vui lòng quét lại QR", status: :gone) if s.closed?
 
