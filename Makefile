@@ -8,7 +8,7 @@ s ?= api
 .PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3 e2e
 
 help: ## Danh sách lệnh
-	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n",$$1,$$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n",$$1,$$2}'
 
 env: ## Tạo .env từ .env.example (nếu chưa có)
 	@test -f .env || (cp .env.example .env && echo "Created .env")

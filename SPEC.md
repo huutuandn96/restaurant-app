@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.8 · **Ngày tạo:** 2026-10-13
+**Version:** 1.9 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -294,6 +294,7 @@ make qr           # in URL QR các bàn
 make urls         # in URL truy cập (localhost + LAN)
 make ps           # trạng thái container
 make s3           # link + tài khoản S3 console
+make e2e          # test end-to-end toàn bộ flow
 ```
 
 ## 11. Cấu trúc thư mục
@@ -312,7 +313,14 @@ restaurant-app/
 - [x] **B4** User Site
 - [x] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
 - [x] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
-- [ ] **B7** Test E2E qua LAN trên điện thoại + README
+- [x] **B7** Test E2E qua LAN + README
+
+> **MVP hoàn tất (B1–B7).** Tính năng mới đi theo Backlog §13: thêm vào spec trước, mỗi tính năng một nhánh và một PR vào `develop`.
+
+**Kiểm thử**
+- `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
+- `make e2e` (`web/scripts/e2e.mjs`): 30 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- Mỗi PR: `make test` + `make e2e` đều phải đạt.
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo), in bill / in phiếu bếp
@@ -335,3 +343,4 @@ restaurant-app/
 | 2026-10-13 | 1.6 | Thêm D9: Active Storage + S3, local dùng RustFS (MinIO không còn image). Upload/xoá ảnh món qua API manage. Ảnh demo chuyển lên S3. Vite proxy thêm `/rails`. Giỏ hàng tự đồng bộ với menu |
 | 2026-10-13 | 1.7 | B5 xong (Staff Site). Màn đối chiếu mã khi xác nhận, sơ đồ bàn màu theo trạng thái, board bếp có đồng hồ chờ, tab Món hết. Socket dev chuyển sang nodemon polling (node --watch không nhận thay đổi file qua bind mount trên macOS) |
 | 2026-10-13 | 1.8 | B6 xong (Manage Site). Lỗi validation tiếng Việt, mật khẩu tối thiểu 6 ký tự, lưu lý do huỷ khi manager đổi trạng thái |
+| 2026-10-13 | 1.9 | B7 xong: `make e2e` (30 kiểm tra REST + realtime + ảnh), đã chạy qua LAN và trên bản clone sạch (`make setup` từ đầu). README đầy đủ (test trên điện thoại, kịch bản test, xử lý sự cố). Sửa `make help`. MVP hoàn tất |
