@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.16 · **Ngày tạo:** 2026-10-13
+**Version:** 1.17 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -77,6 +77,23 @@ docker-compose
 | `menu_item.updated` | waiters, kitchen, managers, guests | Đổi giá / bật tắt món / hết món |
 | `staff_call.resolved` | waiters | Phục vụ đã xử lý yêu cầu gọi |
 | `session.closed` | table_session | Bàn đã thanh toán → client khách về màn quét lại QR |
+
+### 1.1 PWA & Web Push (Staff)
+- **PWA**: Staff site có manifest (`/manifest-staff.webmanifest`, scope `/staff`, icon 192/512/maskable, apple-touch-icon) + service worker `/sw.js` (scope `/staff`). Cài lên màn hình chính, mở toàn màn hình. SW không cache dữ liệu; chỉ trang dự phòng “Mất kết nối” khi điều hướng lỗi mạng.
+- **Web Push** chuẩn VAPID (gem `web-push`, không cần Firebase). Khoá `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT`; thiếu khoá → tắt push. `make vapid` tạo khoá.
+- Nhân viên bật ở Staff → ⚙︎ → **Thông báo** → “Bật thông báo trên máy này” (+ “Gửi thử”). Bảng `push_subscriptions` (user, endpoint, khoá). Cùng endpoint → gắn cho người đang đăng nhập (đổi ca trên máy dùng chung), máy khoá PIN vẫn nhận theo người dùng gần nhất.
+- `Realtime.publish` → `PushRouter` → `PushNotifyJob` (Sidekiq) gửi:
+
+| Sự kiện | Gửi tới role | Nội dung · mở tới |
+|---|---|---|
+| `order.created` | waiter, manager, owner | “🔔 Bàn 05 vừa đặt 3 món” · chi tiết bàn |
+| `order.confirmed` | kitchen | “🍳 Đơn mới Bàn 05” + 3 món đầu · màn Bếp |
+| `order.updated` (status `ready`) | waiter | “✅ Bàn 05: món đã xong” · chi tiết bàn |
+| `table.call_staff` | waiter, manager, owner | “🙋 Bàn 05 gọi nhân viên” · chi tiết bàn |
+
+  `tag` theo đơn / bàn → thông báo cùng loại thay thế nhau, không dồn. Subscription hết hạn (404/410) tự xoá.
+- Socket.IO vẫn là kênh chính khi app mở; push bổ sung cho lúc tắt màn hình / đóng app.
+- **Ràng buộc**: cần **HTTPS** (hoặc `localhost`) — qua `http://LAN_IP` app vẫn chạy nhưng không bật được thông báo (Cài đặt hiện lý do). iPhone/iPad (iOS 16.4+) chỉ nhận khi đã “Thêm vào MH chính” và mở từ icon. Android Chrome nhận bình thường.
 
 ---
 
@@ -307,6 +324,7 @@ Ba loại, cấu hình ở **Manage → 🎟️ Khuyến mãi** (manager, owner)
 - `POST /staff/orders/:id/confirm` · `/cancel` · `/done`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
 - `PATCH /staff/order_items/batch {ids[], status, mark_menu_unavailable}` — gom theo món (kitchen, manager, owner). Từ chối cả lô nếu có món thuộc đơn chưa xác nhận / đã kết thúc; trả về các đơn bị ảnh hưởng
+- `GET /staff/push` (khoá công khai) · `POST /staff/push {endpoint, keys}` · `DELETE /staff/push {endpoint}` · `POST /staff/push/test` (§1.1)
 - `GET /staff/reservations?date=` · `POST /staff/reservations` · `PATCH /staff/reservations/:id` · `POST /staff/reservations/:id/arrive|cancel|no_show` (§5.5). `GET /staff/tables` trả thêm `reservation` (lượt đang giữ bàn)
 - `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
 - `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
@@ -363,6 +381,7 @@ RESTAURANT_BILL_FOOTER=Cảm ơn quý khách, hẹn gặp lại!
 RESERVATION_DURATION_MINUTES=120   # §5.5 chặn đặt trùng
 RESERVATION_HOLD_MINUTES=60        # §5.5 giữ chỗ trên sơ đồ
 MANUAL_DISCOUNT_MAX_PERCENT=10     # §5.6 mức giảm tay tối đa của phục vụ
+VAPID_PUBLIC_KEY= VAPID_PRIVATE_KEY= VAPID_SUBJECT=mailto:...   # §1.1 Web Push (`make vapid`)
 ```
 
 ### 8.2 Production (`.env.production.example` → `.env.production`, không commit)
@@ -441,13 +460,12 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 43 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 45 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
-- PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
 ---
@@ -472,3 +490,4 @@ restaurant-app/
 | 2026-10-13 | 1.14 | Thêm §5.5 Đặt bàn trước (nhân viên nhập): bảng `reservations`, chặn trùng 2 giờ, giữ chỗ trên sơ đồ bàn, khách đến → mở phiên. Tab Đặt bàn ở Staff site, seed lượt đặt demo. e2e 37 kiểm tra |
 | 2026-10-13 | 1.15 | Thêm §5.6 Khuyến mãi: happy hour theo khung giờ (giá menu + snapshot giá gốc), mã voucher, giảm tay trên hoá đơn (phục vụ ≤10%). Phân bổ giảm giá vào `orders.discount`; doanh thu = Σ(total − discount). Trang Manage Khuyến mãi, seed demo. e2e 40 kiểm tra |
 | 2026-10-13 | 1.16 | Thêm §4.1 Đăng nhập PIN trên máy dùng chung đã ghi danh: bảng `devices`, PIN bcrypt, khoá 5′ sau 5 lần sai, tự khoá khi không thao tác, JWT `amr: pin` không vào Manage. e2e 43 kiểm tra |
+| 2026-10-13 | 1.17 | Thêm §1.1 PWA & Web Push cho Staff: manifest + icon + service worker, VAPID (`web-push`), bảng `push_subscriptions`, push đơn mới / gửi bếp / món xong / gọi nhân viên qua Sidekiq, tab Thông báo trong cài đặt. Cần HTTPS hoặc localhost. e2e 45 kiểm tra |

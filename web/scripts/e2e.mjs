@@ -179,6 +179,13 @@ await call('DELETE', `/staff/devices/${dev.id}`, { token: manager.token })
 const revoked = await fetch(`${API}/auth/pin/users`, { headers: { 'X-Device-Token': dev.device_token } })
 ok(revoked.status === 401, 'Thu hồi máy → không dùng PIN được')
 
+console.log('\n11. PWA / Web Push')
+const pushCfg = (await call('GET', '/staff/push', { token: waiter.token })).data
+ok(pushCfg.enabled && pushCfg.public_key?.length > 80, 'Máy chủ có khoá VAPID cho Web Push')
+const mf = await fetch(`${BASE}/manifest-staff.webmanifest`)
+const sw = await fetch(`${BASE}/sw.js`)
+ok(mf.ok && (await mf.json()).start_url === '/staff' && sw.ok, 'Manifest + service worker phục vụ được')
+
 // Dọn: đóng phiên vừa mở ở bước kiểm tra quét lại
 await call('POST', `/staff/tables/${table.id}/checkout`, { token: waiter.token })
 ;[g, w, k, m].forEach((x) => x.socket.disconnect())

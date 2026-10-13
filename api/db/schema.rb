@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_000004) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_000005) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -145,6 +145,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000004) do
     t.datetime "updated_at", null: false
   end
 
+  create_table "push_subscriptions", force: :cascade do |t|
+    t.bigint "user_id", null: false
+    t.string "endpoint", null: false
+    t.string "p256dh", null: false
+    t.string "auth", null: false
+    t.string "user_agent"
+    t.datetime "last_success_at"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["endpoint"], name: "index_push_subscriptions_on_endpoint", unique: true
+    t.index ["user_id"], name: "index_push_subscriptions_on_user_id"
+  end
+
   create_table "reservations", force: :cascade do |t|
     t.bigint "table_id", null: false
     t.string "customer_name", null: false
@@ -257,6 +270,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000004) do
   add_foreign_key "orders", "table_sessions"
   add_foreign_key "orders", "tables"
   add_foreign_key "orders", "users", column: "confirmed_by_id"
+  add_foreign_key "push_subscriptions", "users"
   add_foreign_key "reservations", "table_sessions"
   add_foreign_key "reservations", "tables"
   add_foreign_key "reservations", "users", column: "created_by_id"

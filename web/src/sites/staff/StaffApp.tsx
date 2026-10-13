@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { hasRole, ROLE_LABEL, useAuth } from '../../shared/auth'
@@ -21,9 +21,12 @@ import PinLogin from './PinLogin'
 import StaffSettings from './StaffSettings'
 import { loadDevice, type StaffDevice } from '../../shared/device'
 import { useIdleLock } from '../../shared/useIdleLock'
+import { installStaffPwa } from '../../shared/pwa'
+import { syncPushOwner } from '../../shared/push'
 
 export default function StaffApp() {
   const user = useAuth((s) => s.user)
+  useEffect(installStaffPwa, [])
   // Máy dùng chung đã ghi danh → màn PIN (SPEC §4.1)
   const [device, setDevice] = useState<StaffDevice | null>(loadDevice)
   const [usePassword, setUsePassword] = useState(false)
@@ -49,6 +52,9 @@ function StaffShell({ device, onDevice }: { device: StaffDevice | null; onDevice
   const { user, socketToken, logout } = useAuth()
   const [settings, setSettings] = useState(false)
   useIdleLock(device?.lock_minutes, logout)
+  const token = useAuth((s) => s.token)
+  // Máy đã bật thông báo → push gửi cho người đang đăng nhập (đổi ca trên máy dùng chung)
+  useEffect(() => void syncPushOwner(token), [token])
   const qc = useQueryClient()
   const isWaiter = hasRole(user, 'waiter', 'manager', 'owner')
   const isKitchen = hasRole(user, 'kitchen', 'manager', 'owner')

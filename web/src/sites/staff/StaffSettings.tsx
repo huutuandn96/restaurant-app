@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../shared/api'
 import { hasRole, useAuth } from '../../shared/auth'
 import { saveDevice, type StaffDevice } from '../../shared/device'
 import { toast } from '../../shared/toast'
 import { Modal } from '../../shared/ui'
+import { disablePush, enablePush, pushState, type PushState } from '../../shared/push'
 
 const input = 'w-full rounded-xl bg-white px-3 py-2.5 text-[16px] outline-none ring-1 ring-stone-200 focus:ring-2 focus:ring-brand-500 sm:text-sm'
 
@@ -11,20 +12,22 @@ const input = 'w-full rounded-xl bg-white px-3 py-2.5 text-[16px] outline-none r
 export default function StaffSettings({ device, onDevice, onClose }: { device: StaffDevice | null; onDevice: (d: StaffDevice | null) => void; onClose: () => void }) {
   const { user, token, via } = useAuth()
   const canRegister = hasRole(user, 'manager', 'owner') && via === 'password'
-  const [tab, setTab] = useState<'pin' | 'device'>(canRegister ? 'device' : 'pin')
+  const [tab, setTab] = useState<'notify' | 'pin' | 'device'>('notify')
+  const tabs = canRegister ? (['notify', 'device', 'pin'] as const) : (['notify', 'pin'] as const)
+  const label = { notify: 'Thông báo', device: 'Máy dùng chung', pin: 'PIN của tôi' }
 
   return (
     <Modal title="Cài đặt" onClose={onClose}>
-      {canRegister && (
-        <div className="mb-3 flex rounded-xl bg-stone-100 p-1">
-          {(['device', 'pin'] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg py-1.5 text-sm font-semibold ${tab === t ? 'bg-white shadow' : 'text-stone-500'}`}>
-              {t === 'device' ? 'Máy dùng chung' : 'PIN của tôi'}
-            </button>
-          ))}
-        </div>
-      )}
-      {tab === 'pin' ? <ChangePin token={token} onDone={onClose} /> : <DeviceSetup device={device} token={token} onDevice={onDevice} onDone={onClose} />}
+      <div className="mb-3 flex rounded-xl bg-stone-100 p-1">
+        {tabs.map((t) => (
+          <button key={t} onClick={() => setTab(t)} className={`flex-1 rounded-lg py-1.5 text-sm font-semibold ${tab === t ? 'bg-white shadow' : 'text-stone-500'}`}>
+            {label[t]}
+          </button>
+        ))}
+      </div>
+      {tab === 'notify' && <Notifications token={token} />}
+      {tab === 'pin' && <ChangePin token={token} onDone={onClose} />}
+      {tab === 'device' && <DeviceSetup device={device} token={token} onDevice={onDevice} onDone={onClose} />}
     </Modal>
   )
 }
@@ -120,6 +123,55 @@ function DeviceSetup({ device, token, onDevice, onDone }: { device: StaffDevice 
         {[5, 15, 30, 60].map((m) => <option key={m} value={m}>Tự khoá sau {m} phút không thao tác</option>)}
       </select>
       <button disabled={busy || !name.trim()} onClick={register} className="w-full rounded-xl bg-brand-500 py-3 font-bold text-white disabled:opacity-50">Ghi danh máy này</button>
+    </div>
+  )
+}
+
+const STATE_TEXT: Record<PushState, string> = {
+  on: '✅ Máy này đang nhận thông báo kể cả khi tắt màn hình.',
+  off: 'Chưa bật. Bật để nhận báo đơn mới / khách gọi / món xong khi màn hình tắt hoặc app đóng.',
+  denied: '⛔ Trình duyệt đang chặn thông báo. Mở cài đặt trang (biểu tượng ổ khoá cạnh địa chỉ) → cho phép Thông báo.',
+  insecure: '🔒 Thông báo cần HTTPS (hoặc localhost). Đang truy cập qua http://IP nên chưa dùng được — xem README mục Production.',
+  unsupported: 'Trình duyệt này chưa hỗ trợ. Trên iPhone/iPad: Chia sẻ → Thêm vào MH chính, rồi mở app từ icon.',
+}
+
+// Web Push (SPEC §1.1)
+function Notifications({ token }: { token: string | null }) {
+  const [state, setState] = useState<PushState | null>(null)
+  const [busy, setBusy] = useState(false)
+  useEffect(() => {
+    void pushState().then(setState)
+  }, [])
+  const run = async (fn: () => Promise<unknown>, ok: string) => {
+    setBusy(true)
+    try {
+      await fn()
+      toast(ok)
+    } catch (e) {
+      toast((e as Error).message, 'error')
+    } finally {
+      setBusy(false)
+      setState(await pushState())
+    }
+  }
+  if (!state) return null
+  return (
+    <div className="space-y-3 text-sm">
+      <p className="rounded-xl bg-stone-50 p-3">{STATE_TEXT[state]}</p>
+      {state === 'off' && (
+        <button disabled={busy} onClick={() => run(() => enablePush(token), 'Đã bật thông báo')} className="w-full rounded-xl bg-brand-500 py-3 font-bold text-white disabled:opacity-50">
+          🔔 Bật thông báo trên máy này
+        </button>
+      )}
+      {state === 'on' && (
+        <div className="flex gap-2">
+          <button disabled={busy} onClick={() => run(() => disablePush(token), 'Đã tắt thông báo')} className="rounded-xl bg-stone-100 px-4 py-3 font-semibold">Tắt</button>
+          <button disabled={busy} onClick={() => run(() => api('/staff/push/test', { method: 'POST', token }), 'Đã gửi thông báo thử')} className="flex-1 rounded-xl bg-stone-900 py-3 font-bold text-white disabled:opacity-50">
+            Gửi thử
+          </button>
+        </div>
+      )}
+      <p className="text-xs text-stone-500">Mẹo: cài app lên màn hình chính (Chrome: menu → Cài đặt ứng dụng; iPhone: Chia sẻ → Thêm vào MH chính) để mở nhanh, toàn màn hình.</p>
     </div>
   )
 }

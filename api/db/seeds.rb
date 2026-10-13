@@ -6,7 +6,7 @@ puts "Xoá dữ liệu cũ..."
 ActiveStorage::Attachment.delete_all
 ActiveStorage::VariantRecord.delete_all
 ActiveStorage::Blob.find_each(&:purge)
-[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, Voucher, Promotion, MenuItem, Category, Table, Device, User].each(&:delete_all)
+[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, Voucher, Promotion, MenuItem, Category, Table, Device, PushSubscription, User].each(&:delete_all)
 
 puts "Users..."
 # PIN demo cho đăng nhập trên máy dùng chung (SPEC §4.1)
