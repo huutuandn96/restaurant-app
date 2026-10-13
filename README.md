@@ -67,6 +67,7 @@ Nên dùng 3 thiết bị (hoặc 3 tab trình duyệt): khách, phục vụ, b�
 | 4 | Phục vụ | Đến bàn, bấm **Xác nhận**, đối chiếu mã với điện thoại khách, bấm **Khớp → Gửi bếp** | Khách nhận "Nhân viên đã xác nhận…" |
 | 5 | Bếp | Màn hình **Bếp** | Đơn bàn 06 hiện ra, có đồng hồ chờ |
 | 5b | Bếp | Bấm **🖨️ In** trên đơn, hoặc tick **Tự in phiếu** trước bước 4 | Phiếu bếp 80mm: bàn chữ lớn, món + ghi chú |
+| 5c | Bếp | Chuyển **Theo món** (cần 2 bàn gọi cùng món) | Món trùng gộp thành 1 thẻ "4× Phở…" kèm từng bàn; **Xong cả 4** cập nhật mọi đơn liên quan |
 | 6 | Bếp | Bấm **✓ Xong** một món, **Hết** một món (tick "Hết cả menu") | Khách thấy món xong hoặc hết. Phục vụ nhận cảnh báo hết món. Món hết bị mờ trên menu của mọi khách |
 | 7 | Bếp | Bấm **Xong cả đơn** | Phục vụ nhận "đơn sẵn sàng mang ra". Ô bàn trên sơ đồ chuyển xanh |
 | 8 | Khách | Bấm **Gọi nhân viên** | Phục vụ thấy banner đỏ "Bàn 06 gọi nhân viên" |
@@ -74,7 +75,7 @@ Nên dùng 3 thiết bị (hoặc 3 tab trình duyệt): khách, phục vụ, b�
 | 9b | Phục vụ | Trước bước 9: **Bàn 06 → 🖨️ Tạm tính**. Ở bước 9 giữ tick *In hoá đơn sau khi đóng bàn* | Hộp thoại in hiện phiếu 80mm: tạm tính, rồi hoá đơn có thu ngân |
 | 10 | Quản lý | **Tổng quan**, **Đơn hàng**, **Doanh thu** (chỉ owner) → Xuất CSV | Số liệu cập nhật realtime. CSV mở bằng Excel không lỗi tiếng Việt |
 
-Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (33 điểm kiểm tra).
+Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (34 điểm kiểm tra).
 
 **In phiếu:** app in qua hộp thoại in của trình duyệt, khổ 80mm. Cài máy in nhiệt (USB/LAN/Bluetooth) trên thiết bị rồi chọn nó trong hộp thoại; không có máy in thì chọn *Lưu thành PDF*. Trên máy bếp muốn in thẳng không hỏi: mở Chrome bằng `--kiosk-printing` và đặt máy in nhiệt làm mặc định. Tên, địa chỉ, SĐT quán trên hoá đơn đặt bằng `RESTAURANT_*` trong `.env`.
 

@@ -96,6 +96,7 @@ ok(g.has('order.confirmed'), 'Khách nhận order.confirmed')
 
 console.log('\n4. Bếp làm món')
 const [i1, i2] = confirmed.items
+ok((await call('PATCH', '/staff/order_items/batch', { token: waiter.token, body: { ids: [i1.id], status: 'done' } })).status === 403, 'Phục vụ không dùng được gom theo món (403)')
 await call('PATCH', `/staff/order_items/${i1.id}`, { token: kitchen.token, body: { status: 'done' } })
 const afterOut = (await call('PATCH', `/staff/order_items/${i2.id}`, { token: kitchen.token, body: { status: 'out_of_stock' } })).data
 ok(afterOut.status === 'ready', 'Món 1 xong + món 2 hết → đơn ready')

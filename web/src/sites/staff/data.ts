@@ -84,6 +84,22 @@ export const useUpdateItem = () =>
     api(`/staff/order_items/${id}`, { method: 'PATCH', token, body: { status, mark_menu_unavailable: !!markMenuUnavailable } }),
   )
 
+// Gom theo món: cập nhật nhiều món (nhiều đơn) trong 1 request
+export function useBatchItems() {
+  const qc = useQueryClient()
+  const token = useToken()
+  return useMutation({
+    mutationFn: (v: { ids: number[]; status: OrderItemStatus; markMenuUnavailable?: boolean }) =>
+      api<Order[]>('/staff/order_items/batch', {
+        method: 'PATCH',
+        token,
+        body: { ids: v.ids, status: v.status, mark_menu_unavailable: !!v.markMenuUnavailable },
+      }),
+    onSuccess: (orders) => orders.forEach((o) => applyOrder(qc, o)),
+    onError: (e) => toast(e.message, 'error'),
+  })
+}
+
 export function useCheckout() {
   const qc = useQueryClient()
   const token = useToken()
