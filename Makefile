@@ -5,7 +5,7 @@ s ?= api
 -include .env
 
 .DEFAULT_GOAL := help
-.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3
+.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3 e2e
 
 help: ## Danh sách lệnh
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n",$$1,$$2}'
@@ -56,6 +56,9 @@ console: ## Rails console
 
 bash: ## Shell vào container (s=api)
 	$(COMPOSE) exec $(s) sh
+
+e2e: ## Test end-to-end toàn bộ flow (REST + realtime + ảnh), BASE=http://LAN_IP:5173 để test qua LAN
+	$(COMPOSE) exec -e BASE=$(or $(BASE),http://localhost:5173) web node scripts/e2e.mjs
 
 test: ## Chạy test backend
 	$(COMPOSE) exec -e RAILS_ENV=test api bash -c "bin/rails db:prepare && bundle exec rspec"
