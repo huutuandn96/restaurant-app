@@ -52,6 +52,14 @@ RSpec.describe "Order flow" do
       expect(confirmed[:rooms]).to include("kitchen")
     end
 
+    it "chưa xác nhận thì bếp không nhận; đã xác nhận rồi huỷ thì bếp vẫn nhận để gỡ khỏi board" do
+      order = place_order
+      expect(RealtimeSpy.events.last[:rooms]).not_to include("kitchen")
+      Orders::Transition.call(order, action: "confirm", user: waiter)
+      Orders::Transition.call(order, action: "cancel", user: waiter)
+      expect(RealtimeSpy.events.last[:rooms]).to include("kitchen")
+    end
+
     it "không cho xác nhận lại đơn đã xác nhận" do
       order = Orders::Transition.call(place_order, action: "confirm", user: waiter)
       expect { Orders::Transition.call(order, action: "confirm", user: waiter) }.to raise_error(ServiceError)

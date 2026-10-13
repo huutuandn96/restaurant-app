@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.3 · **Ngày tạo:** 2026-10-13
+**Version:** 1.4 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -55,11 +55,17 @@ docker-compose
 - Khách: `{kind: "guest", table_session_id}` → join `table_session:{id}` + `guests`.
 - REST trả `socket_token` kèm khi login (staff) và khi mở session (khách).
 
+**Client (web/src/shared)**
+- `useSocket(token, {handlers, onReconnect})`: 1 kết nối/token; khi kết nối lại hoặc quay lại tab (mobile khoá màn hình) → gọi `onReconnect` để refetch, không bỏ lỡ event.
+- `notify(tone)`: âm thanh (Web Audio, không cần file) + rung. Trình duyệt mobile chỉ cho phát sau lần chạm đầu tiên → gọi `unlockAudio()` trong handler click.
+- `useAuth` (Zustand persist): token staff/manage dùng chung; API trả 401 → tự logout.
+- Trang dev `/dev/realtime`: đăng nhập tài khoản demo và xem log event.
+
 **Events**
 | Event | Gửi tới | Khi nào |
 |---|---|---|
 | `order.created` | waiters, managers, table_session | Khách đặt món |
-| `order.updated` | waiters, kitchen, managers, table_session | Bất kỳ đổi trạng thái order |
+| `order.updated` | waiters, managers, table_session (+ kitchen nếu đơn đã từng được xác nhận) | Bất kỳ đổi trạng thái order |
 | `order.confirmed` | kitchen (+ như trên) | Phục vụ xác nhận |
 | `order_item.updated` | waiters, kitchen, managers, table_session | Bếp done / hết món |
 | `table.call_staff` | waiters | Khách bấm "Gọi nhân viên" |
@@ -280,7 +286,7 @@ restaurant-app/
 ## 12. Lộ trình triển khai
 - [x] **B1** Khung Docker + Makefile + Rails + React + socket chạy được `make setup`
 - [x] **B2** Models, migrations, seed, auth, API, publisher realtime phía server, rspec services
-- [ ] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung
+- [x] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung, trang `/dev/realtime`
 - [ ] **B4** User Site
 - [ ] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
 - [ ] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
@@ -302,3 +308,4 @@ restaurant-app/
 | 2026-10-13 | 1.1 | Sửa D3: QR tĩnh không đổi; chỉ session_token + verify_code đổi theo mỗi lượt khách. Thêm quy tắc 1 session open/bàn và chống order từ xa |
 | 2026-10-13 | 1.2 | B1 xong. Thêm D8 (Vite proxy 1 cổng). Port host: API 3001, DB 5433 (tránh xung đột). Chốt version: Rails 8.1, React 19, Node 22, Sidekiq 8. Định dạng message Redis + claims JWT socket |
 | 2026-10-13 | 1.3 | B2 xong. Phân quyền dùng `allow_roles` thay Pundit. Publisher realtime phía server làm luôn trong B2 → B3 chỉ còn phía client. Thêm room `guests`, event `staff_call.resolved`, `session.closed`, API bật lại món, danh sách gọi nhân viên. Bổ sung quy tắc nghiệp vụ |
+| 2026-10-13 | 1.4 | B3 xong. Bếp nhận cả event completed/cancelled của đơn đã xác nhận (để gỡ khỏi board). Mô tả lớp realtime phía client + trang `/dev/realtime` |

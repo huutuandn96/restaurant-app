@@ -19,6 +19,7 @@ export default function HomePage() {
       <div className="mt-6 grid gap-3">
         <Link to="/staff" className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200">Staff site →</Link>
         <Link to="/manage" className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200">Manage site →</Link>
+        <Link to="/dev/realtime" className="rounded-xl bg-white p-4 shadow-sm ring-1 ring-stone-200">Dev · Realtime monitor →</Link>
         <p className="text-sm text-stone-500">User site: quét QR tại bàn (<code>/t/:qrToken</code>)</p>
       </div>
 
