@@ -35,6 +35,9 @@ module Api
     #
     config.time_zone = "Asia/Ho_Chi_Minh"
     config.active_job.queue_adapter = :sidekiq
+    # Ảnh phục vụ qua Rails (proxy) → URL tương đối, điện thoại chỉ cần cổng web (SPEC D8, D9)
+    config.active_storage.resolve_model_to_route = :rails_storage_proxy
+    config.active_storage.variant_processor = :vips
     # config.eager_load_paths << Rails.root.join("extras")
 
     # Only loads a smaller set of middleware suitable for API only apps.

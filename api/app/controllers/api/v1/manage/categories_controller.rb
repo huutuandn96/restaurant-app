@@ -4,7 +4,7 @@ module Api
       class CategoriesController < BaseController
         def index
           cats = Category.ordered.to_a
-          items = MenuItem.ordered.group_by(&:category_id)
+          items = MenuItem.with_attached_image.ordered.group_by(&:category_id)
           render json: cats.map { |c| MenuSerializer.category(c, items: items[c.id] || []) }
         end
 

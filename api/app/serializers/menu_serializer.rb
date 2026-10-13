@@ -14,7 +14,7 @@ module MenuSerializer
       name: i.name,
       description: i.description,
       price: i.price,
-      image_url: i.image_url,
+      image_url: i.image_path,
       available: i.available,
       position: i.position
     }

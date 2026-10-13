@@ -17,6 +17,10 @@ export default function MenuPage({ socketStatus }: { socketStatus: SocketStatus 
   const { session, qrToken } = useGuest()
   const menu = useQuery({ queryKey: ['public-menu'], queryFn: () => api<MenuData>('/public/menu'), staleTime: 60_000 })
   const lines = useCart((s) => s.lines)
+  const syncMenu = useCart((s) => s.syncMenu)
+  useEffect(() => {
+    if (menu.data) syncMenu(menu.data.categories.flatMap((c) => c.items ?? []))
+  }, [menu.data, syncMenu])
   const [search, setSearch] = useState('')
   const q = normalize(useDeferredValue(search))
   const [active, setActive] = useState<number | null>(null)
