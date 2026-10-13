@@ -5,6 +5,17 @@ import type { Order, OrderItem } from '../../shared/types'
 import { EmptyState, ItemStatus, Modal, Spinner } from '../../shared/ui'
 import { useActiveOrders, useDoneOrder, useUpdateItem } from './data'
 import { getPref, printKitchenTicket, setPref } from '../../shared/print'
+import KitchenByDish from './KitchenByDish'
+
+type View = 'order' | 'dish'
+const VIEW_KEY = 'kitchen:view'
+function loadView(): View {
+  try {
+    return localStorage.getItem(VIEW_KEY) === 'dish' ? 'dish' : 'order'
+  } catch {
+    return 'order'
+  }
+}
 
 const FILTERS = [
   { key: 'todo', label: 'Cần làm', statuses: ['confirmed', 'preparing'] },
@@ -13,7 +24,7 @@ const FILTERS = [
   { key: 'ready', label: 'Đã xong', statuses: ['ready'] },
 ] as const
 
-// Board bếp (SPEC §5.2): cũ → mới, đồng hồ chờ, done từng món / cả đơn, báo hết món
+// Board bếp (SPEC §5.2): xem theo đơn (cũ → mới) hoặc gom theo món; đồng hồ chờ, done từng món / cả đơn, báo hết món
 export default function KitchenPage() {
   const now = useNow(15_000)
   const { data, isPending } = useActiveOrders()
@@ -21,6 +32,15 @@ export default function KitchenPage() {
   const [tableId, setTableId] = useState<number | 'all'>('all')
   const [soldOut, setSoldOut] = useState<{ order: Order; item: OrderItem } | null>(null)
   const [autoPrint, setAutoPrint] = useState(() => getPref('auto-kitchen', false))
+  const [view, setView] = useState<View>(loadView)
+  const changeView = (v: View) => {
+    setView(v)
+    try {
+      localStorage.setItem(VIEW_KEY, v)
+    } catch {
+      /* private mode */
+    }
+  }
 
   const kitchenOrders = useMemo(() => (data ?? []).filter((o) => ['confirmed', 'preparing', 'ready'].includes(o.status)), [data])
   const tables = useMemo(
@@ -36,7 +56,18 @@ export default function KitchenPage() {
     <div>
       <div className="sticky top-[52px] z-20 space-y-2 bg-stone-100 px-4 pb-2 pt-3">
         <div className="no-scrollbar flex gap-2 overflow-x-auto">
-          {FILTERS.map((f) => {
+          <div className="flex shrink-0 rounded-xl bg-white p-1 ring-1 ring-stone-200">
+            {(['order', 'dish'] as const).map((v) => (
+              <button
+                key={v}
+                onClick={() => changeView(v)}
+                className={`rounded-lg px-3 py-1 text-sm font-semibold ${view === v ? 'bg-brand-500 text-white' : 'text-stone-600'}`}
+              >
+                {v === 'order' ? 'Theo đơn' : 'Theo món'}
+              </button>
+            ))}
+          </div>
+          {view === 'order' && FILTERS.map((f) => {
             const n = kitchenOrders.filter((o) => (f.statuses as readonly string[]).includes(o.status)).length
             return (
               <button
@@ -71,6 +102,8 @@ export default function KitchenPage() {
 
       {isPending ? (
         <div className="grid place-items-center py-16"><Spinner /></div>
+      ) : view === 'dish' ? (
+        <KitchenByDish orders={kitchenOrders.filter((o) => tableId === 'all' || o.table.id === tableId)} now={now} />
       ) : list.length === 0 ? (
         <EmptyState icon="👨‍🍳" text="Không có đơn nào" />
       ) : (

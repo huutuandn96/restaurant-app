@@ -28,7 +28,9 @@ Rails.application.routes.draw do
             post :done
           end
         end
-        resources :order_items, only: :update
+        resources :order_items, only: :update do
+          patch :batch, on: :collection
+        end
         resources :table_sessions, only: [] do
           get :bill, on: :member
         end

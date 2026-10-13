@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.11 · **Ngày tạo:** 2026-10-13
+**Version:** 1.12 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -200,6 +200,10 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
   - [x] Filter: Cần làm / Mới / Đang làm / Đã xong + filter theo bàn
   - [x] Từng món: Bắt đầu / ✓ Xong / Hết (+ hoàn tác Xong) · **Xong cả đơn**
   - [x] Báo hết món: tuỳ chọn “Hết cả menu” (mặc định bật)
+  - [x] **Chế độ xem**: *Theo đơn* (mặc định) / *Theo món*, nhớ theo thiết bị
+  - [x] **Gom theo món**: gộp mọi phần chưa xong (chờ làm / đang nấu) của các đơn đã gửi bếp theo món → tổng số phần, danh sách bàn (số lượng, ghi chú, mã đơn, phút chờ). Món chờ lâu nhất lên đầu, vẫn lọc theo bàn được
+    - **Bắt đầu cả mẻ** (mọi phần chờ làm → đang nấu) · **Xong cả N** · ✓ từng bàn · **Hết** cả món (mọi phần chưa xong, tuỳ chọn ẩn khỏi menu)
+    - Thao tác hàng loạt dùng `PATCH /staff/order_items/batch`, mỗi món vẫn ghi lịch sử + realtime như thao tác lẻ
   - [x] Tab **Món hết**: bật lại món đã hết, báo hết món bất kỳ
   - [x] Mọi thao tác realtime về phục vụ + khách
 
@@ -247,6 +251,7 @@ In qua hộp thoại in của trình duyệt (máy in nhiệt 80mm cài trên th
 - `GET /staff/orders?status=&table_id=`
 - `POST /staff/orders/:id/confirm` · `/cancel` · `/done`
 - `PATCH /staff/order_items/:id` (status: cooking/done/out_of_stock, mark_menu_unavailable)
+- `PATCH /staff/order_items/batch {ids[], status, mark_menu_unavailable}` — gom theo món (kitchen, manager, owner). Từ chối cả lô nếu có món thuộc đơn chưa xác nhận / đã kết thúc; trả về các đơn bị ảnh hưởng
 - `GET /staff/staff_calls` · `POST /staff/staff_calls/:id/resolve`
 - `PATCH /staff/menu_items/:id {available}` (bật lại món đã hết)
 - `GET /staff/table_sessions/:id/bill` — dữ liệu in hoá đơn / tạm tính (waiter, manager, owner). Checkout trả thêm `closed_session_id`
@@ -374,14 +379,13 @@ restaurant-app/
 
 **Kiểm thử**
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
-- `make e2e` (`web/scripts/e2e.mjs`): 33 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
+- `make e2e` (`web/scripts/e2e.mjs`): 34 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
 - PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo)
 - Gộp / chuyển bàn, đặt bàn trước, khuyến mãi / voucher
-- Bếp: chế độ gom theo món
 - Login PIN cho nhân viên, PWA, push notification
 - Đa chi nhánh, quản lý kho nguyên liệu
 
@@ -402,3 +406,4 @@ restaurant-app/
 | 2026-10-13 | 1.9 | B7 xong: `make e2e` (30 kiểm tra REST + realtime + ảnh), đã chạy qua LAN và trên bản clone sạch (`make setup` từ đầu). README đầy đủ (test trên điện thoại, kịch bản test, xử lý sự cố). Sửa `make help`. MVP hoàn tất |
 | 2026-10-13 | 1.10 | Thêm D10: tách `docker-compose.prod.yml` (nginx, image production, không RustFS) và `.env.production.example`. Hỗ trợ Cloudflare R2. Thêm `PUBLIC_URL` cho QR, `FORCE_SSL`, lệnh `make prod-*`. Đã chạy thử stack prod trên máy (thay R2 bằng RustFS), e2e 30/30 |
 | 2026-10-13 | 1.11 | Thêm §5.4 In phiếu bếp & hoá đơn (80mm, qua trình duyệt): phiếu bếp thủ công / tự in, phiếu tạm tính, hoá đơn khi thanh toán, in lại từ Manage. API `GET /staff/table_sessions/:id/bill`, checkout trả `closed_session_id`. ENV `RESTAURANT_*`. e2e 33 kiểm tra |
+| 2026-10-13 | 1.12 | Bếp: chế độ xem *Theo món* (gom các phần chưa xong theo món, bắt đầu / xong / hết cả mẻ). API `PATCH /staff/order_items/batch`. e2e 34 kiểm tra |
