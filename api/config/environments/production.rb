@@ -22,10 +22,11 @@ Rails.application.configure do
   config.active_storage.service = :s3
 
   # Assume all access to the app is happening through a SSL-terminating reverse proxy.
-  config.assume_ssl = true
+  # Bật khi chạy sau HTTPS (Cloudflare Tunnel / reverse proxy); tắt khi test prod qua http LAN
+  config.assume_ssl = ENV["FORCE_SSL"] == "true"
 
   # Force all access to the app over SSL, use Strict-Transport-Security, and use secure cookies.
-  config.force_ssl = true
+  config.force_ssl = ENV["FORCE_SSL"] == "true"
 
   # Skip http-to-https redirect for the default health check endpoint.
   # config.ssl_options = { redirect: { exclude: ->(request) { request.path == "/up" } } }

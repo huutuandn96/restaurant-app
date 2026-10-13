@@ -6,7 +6,7 @@ local:
   service: Disk
   root: <%= Rails.root.join("storage") %>
 
-# S3: local trỏ sang RustFS (S3_ENDPOINT); production bỏ S3_ENDPOINT để dùng AWS S3 (SPEC D9)
+# S3 (SPEC D9): dev → RustFS; production → AWS S3 (bỏ S3_ENDPOINT) hoặc Cloudflare R2 (S3_ENDPOINT=https://<id>.r2.cloudflarestorage.com)
 s3:
   service: S3
   access_key_id: <%= ENV["S3_ACCESS_KEY"] %>
@@ -16,4 +16,7 @@ s3:
   <% if ENV["S3_ENDPOINT"].present? %>
   endpoint: <%= ENV["S3_ENDPOINT"] %>
   force_path_style: true
+  # Endpoint S3-compatible (RustFS, R2): chỉ gửi checksum khi bắt buộc, tránh lỗi CRC32 mặc định của aws-sdk mới
+  request_checksum_calculation: when_required
+  response_checksum_validation: when_required
   <% end %>

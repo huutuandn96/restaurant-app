@@ -57,6 +57,7 @@ build-iPhoneSimulator/
 
 # project
 .env
+.env.production
 node_modules/
 web/dist/
 api/log/*
