@@ -16,9 +16,14 @@ class Table < ApplicationRecord
     update!(qr_token: self.class.new_token)
   end
 
-  # URL in trên QR (SPEC §2.1)
+  # URL in trên QR (SPEC §2.1): PUBLIC_URL (domain prod) nếu có, không thì http://LAN_IP:WEB_PORT
   def qr_url
-    "http://#{ENV.fetch('LAN_IP', 'localhost')}:#{ENV.fetch('WEB_PORT', '5173')}/t/#{qr_token}"
+    "#{self.class.base_url}/t/#{qr_token}"
+  end
+
+  def self.base_url
+    ENV["PUBLIC_URL"].presence&.chomp("/") ||
+      "http://#{ENV.fetch('LAN_IP', 'localhost')}:#{ENV.fetch('WEB_PORT', '5173')}"
   end
 
   def label = format("Bàn %02d", number)

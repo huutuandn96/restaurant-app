@@ -124,7 +124,7 @@ worker (Sidekiq: resize ảnh)   ▼
 | socket | Socket.IO, nhận event qua Redis pub/sub | 4000 |
 | db | PostgreSQL 16 | 5433 |
 | redis | Redis 7 | – |
-| s3 | RustFS, giả lập S3 cho ảnh (`make s3` để xem console) | 9001 |
+| s3 | RustFS, giả lập S3 cho ảnh (`make s3` để xem console). Chỉ có ở dev | 9001 |
 | s3-init | Tạo bucket lúc khởi động | – |
 
 Port có thể đổi trong `.env` nếu bị trùng với project khác.
@@ -136,16 +136,61 @@ api/      Rails: app/{models,services,serializers,controllers/api/v1/{public,sta
 socket/   Socket.IO server
 web/      React: src/sites/{customer,staff,manage}, src/shared, scripts/e2e.mjs
 SPEC.md   Spec tổng thể
+docker-compose.yml       dev (.env)
+docker-compose.prod.yml  production (.env.production)
 ```
 
-## 7. Lên S3 thật (sau này)
+## 7. Production
 
-Trong `.env` (hoặc biến môi trường của server):
-- Bỏ `S3_ENDPOINT`.
-- Điền `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET` và `S3_REGION` của AWS.
-- Bỏ 2 service `s3` và `s3-init` khỏi compose.
+`docker-compose.yml` chỉ dùng cho dev (có RustFS giả lập S3, hot reload). Production dùng file riêng **`docker-compose.prod.yml`**:
+- api/worker chạy image production (`RAILS_ENV=production`), tự migrate khi khởi động.
+- web là bản build tĩnh do **nginx** phục vụ. nginx proxy `/api`, `/rails`, `/socket.io` nên vẫn chỉ cần một cổng.
+- Không có container S3: ảnh lưu trên **Cloudflare R2** hoặc **AWS S3**.
+- db/redis không mở port ra ngoài, các container tự khởi động lại khi lỗi.
 
-Không cần sửa code.
+### Chạy lần đầu
+
+```bash
+make prod-env      # tạo .env.production từ .env.production.example
+# sửa .env.production: secret, mật khẩu DB, S3_*, PUBLIC_URL
+make prod-up       # build + chạy (tự tạo DB và migrate)
+make prod-qr       # xem link QR các bàn
+```
+
+Sinh secret: `openssl rand -hex 64` (cho `SECRET_KEY_BASE`, `JWT_SECRET`, `SOCKET_JWT_SECRET`). Thiếu biến bắt buộc thì compose báo lỗi và không chạy.
+
+Production bắt đầu với DB trống. Tạo tài khoản owner bằng `make prod-console`:
+```ruby
+User.create!(name: "Chủ quán", email: "owner@quan.vn", password: "matkhau-manh", role: "owner")
+```
+Hoặc chạy `make prod-seed` để nạp dữ liệu demo (lệnh này **xoá toàn bộ dữ liệu** nên có bước xác nhận).
+
+### Lưu ảnh
+
+**Cloudflare R2:** tạo bucket và API token (quyền *Object Read & Write*) trên Cloudflare Dashboard → R2.
+```
+S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com
+S3_REGION=auto
+S3_ACCESS_KEY=...  S3_SECRET_KEY=...  S3_BUCKET=restaurant-prod
+```
+
+**AWS S3:** để trống `S3_ENDPOINT`, đặt `S3_REGION=ap-southeast-1` cùng key và bucket của AWS.
+
+Bucket để **private** được, vì ảnh đi qua Rails (`/rails/active_storage/...`).
+
+### Domain và HTTPS
+
+- Chỉ chạy trong LAN của quán: để trống `PUBLIC_URL`, QR dùng `http://LAN_IP:WEB_PORT`.
+- Có domain: đặt **Cloudflare Tunnel** hoặc reverse proxy có SSL trỏ vào cổng `WEB_PORT`, rồi đặt `PUBLIC_URL=https://domain-cua-ban` và `FORCE_SSL=true`. QR đổi theo `PUBLIC_URL` nên cần in lại QR.
+
+### Lệnh
+
+```bash
+make prod-up | prod-down | prod-ps
+make prod-logs s=api
+make prod-restart s=web
+make prod-migrate | prod-console | prod-qr
+```
 
 ## 8. Xử lý sự cố
 
@@ -159,3 +204,5 @@ Không cần sửa code.
 | Sửa code socket không thấy chạy | `make restart s=socket`. Socket dev dùng nodemon polling, thường tự reload |
 | `nodemon: not found` sau khi pull | `docker compose rm -sf socket && docker volume rm restaurant_socket_node_modules && make up` |
 | Đổi Gemfile / package.json | `make build && make up` |
+| Prod: upload ảnh lỗi `checksum` / `InvalidRequest` | Kiểm tra `api/config/storage.yml` có 2 dòng `*_checksum_* : when_required` (đã có sẵn) và `S3_ENDPOINT` đúng |
+| Prod: QR sai domain | Đặt `PUBLIC_URL` trong `.env.production`, `make prod-up`, in lại QR |

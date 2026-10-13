@@ -5,10 +5,13 @@ s ?= api
 -include .env
 
 .DEFAULT_GOAL := help
-.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3 e2e
+.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3 e2e \
+        prod-env prod-build prod-up prod-down prod-restart prod-logs prod-ps prod-migrate prod-seed prod-console prod-qr
+
+PROD := docker compose --env-file .env.production -f docker-compose.prod.yml
 
 help: ## Danh sách lệnh
-	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n",$$1,$$2}'
+	@grep -hE '^[a-zA-Z0-9_-]+:.*?## ' Makefile | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-13s\033[0m %s\n",$$1,$$2}'
 
 env: ## Tạo .env từ .env.example (nếu chưa có)
 	@test -f .env || (cp .env.example .env && echo "Created .env")
@@ -78,3 +81,38 @@ urls: ## In các URL truy cập
 
 s3: ## Link + tài khoản S3 console (RustFS giả lập S3)
 	@echo "  http://localhost:$(S3_CONSOLE_PORT)/rustfs/console/  user: $(S3_ACCESS_KEY)  pass: $(S3_SECRET_KEY)  bucket: $(S3_BUCKET)"
+
+# ---------- Production (docker-compose.prod.yml + .env.production) ----------
+prod-env: ## [prod] Tạo .env.production từ mẫu (rồi điền giá trị thật)
+	@test -f .env.production || (cp .env.production.example .env.production && echo "Created .env.production — điền secret + S3_* trước khi chạy")
+
+prod-build: ## [prod] Build image production
+	$(PROD) build
+
+prod-up: ## [prod] Chạy stack production (tự migrate)
+	$(PROD) up -d --build
+
+prod-down: ## [prod] Dừng stack production
+	$(PROD) down
+
+prod-restart: ## [prod] Restart service (s=api)
+	$(PROD) restart $(s)
+
+prod-logs: ## [prod] Xem log (s=api)
+	$(PROD) logs -f --tail=100 $(s)
+
+prod-ps: ## [prod] Trạng thái container
+	$(PROD) ps
+
+prod-migrate: ## [prod] Chạy migration
+	$(PROD) exec api bin/rails db:migrate
+
+prod-seed: ## [prod] Seed dữ liệu demo (XOÁ dữ liệu hiện có!)
+	@read -p "Seed sẽ xoá toàn bộ dữ liệu production. Gõ 'yes' để tiếp tục: " c && [ "$$c" = yes ]
+	$(PROD) exec api bin/rails db:seed
+
+prod-console: ## [prod] Rails console
+	$(PROD) exec api bin/rails console
+
+prod-qr: ## [prod] In URL QR các bàn
+	@$(PROD) exec api bin/rails tables:urls

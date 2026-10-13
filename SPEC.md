@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.9 · **Ngày tạo:** 2026-10-13
+**Version:** 1.10 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -21,7 +21,8 @@
 | D6 | Môi trường | Local, chạy toàn bộ bằng Docker Compose; QR dùng `LAN_IP` trong `.env` |
 | D7 | Tiền / giờ / ngôn ngữ | VND (integer), timezone `Asia/Ho_Chi_Minh`, thông báo lỗi API tiếng Việt (`config/locales/vi.yml`) |
 | D8 | Một cổng truy cập | Client chỉ gọi `http://LAN_IP:5173`; Vite proxy `/api` + `/rails` → Rails, `/socket.io` → Socket server (không cần CORS/IP riêng cho API) |
-| D9 | Lưu file | **Active Storage + S3**. Local dùng **RustFS** (S3-compatible, container `s3`) thay MinIO (image MinIO không còn pull được). Ảnh phục vụ qua **Rails proxy** (`/rails/active_storage/...`, URL tương đối). Lên AWS S3: chỉ đổi `S3_*`, bỏ `S3_ENDPOINT` |
+| D9 | Lưu file | **Active Storage + S3**. Local dùng **RustFS** (S3-compatible, container `s3`) thay MinIO (image MinIO không còn pull được). Ảnh phục vụ qua **Rails proxy** (`/rails/active_storage/...`, URL tương đối). Production dùng AWS S3 (bỏ `S3_ENDPOINT`) hoặc Cloudflare R2 (`S3_ENDPOINT` = endpoint R2, `S3_REGION=auto`), chỉ đổi ENV |
+| D10 | Môi trường | `docker-compose.yml` **chỉ cho dev** (RustFS, hot reload, mở port). `docker-compose.prod.yml` cho production (image build sẵn, nginx, không có S3 giả lập), đọc `.env.production`. Xem §8.2 |
 
 ---
 
@@ -83,7 +84,7 @@ docker-compose
 
 ### 2.1 Token & URL
 - Mỗi bàn có `qr_token` ngẫu nhiên (24 ký tự, không đoán được). **Không** dùng số bàn trong URL.
-- URL QR: `http://${LAN_IP}:${WEB_PORT}/t/${qr_token}`
+- URL QR: `${PUBLIC_URL}/t/${qr_token}` nếu có `PUBLIC_URL` (domain production), không thì `http://${LAN_IP}:${WEB_PORT}/t/${qr_token}`
 - QR **tĩnh**: in 1 lần, dán cố định. `qr_token` chỉ đổi khi manager chủ động bấm "Tạo lại QR" (VD QR bị lộ/hỏng) → khi đó mới cần in lại.
 - Cái thay đổi theo mỗi lượt khách là **table session** (`session_token` + `verify_code`), xem §2.2–2.3.
 
@@ -251,7 +252,9 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - **FE**: React 19 + Vite + TS, TailwindCSS, React Router, TanStack Query, Zustand, socket.io-client, qrcode.react
 - **Socket**: Node 22, socket.io, ioredis, jsonwebtoken
 
-## 8. ENV (`.env.example`)
+## 8. ENV
+
+### 8.1 Dev (`.env.example`)
 ```
 LAN_IP=192.168.1.10
 WEB_PORT=5173
@@ -274,6 +277,34 @@ S3_REGION=ap-southeast-1
 S3_CONSOLE_PORT=9001
 ```
 
+### 8.2 Production (`.env.production.example` → `.env.production`, không commit)
+`docker-compose.prod.yml`, project `restaurant-prod`:
+
+| Service | Dev | Production |
+|---|---|---|
+| api | `Dockerfile.dev`, mount code | `api/Dockerfile` multi-stage, `RAILS_ENV=production`, user non-root, tự `db:prepare` khi khởi động, healthcheck `/api/v1/health` |
+| worker | mount code | dùng chung image api, chạy sau khi api healthy |
+| web | Vite dev server | `web/Dockerfile.prod`: build tĩnh + **nginx** (`web/nginx.conf`) proxy `/api`, `/rails`, `/socket.io` (giữ D8: 1 cổng) |
+| socket | nodemon | `node`, chỉ dependencies |
+| db / redis | mở port ra host | không mở port, `restart: unless-stopped` |
+| s3 / s3-init | RustFS | **không có**; dùng AWS S3 hoặc R2 |
+
+Biến riêng của production:
+```
+PUBLIC_URL=                      # domain in QR, VD https://order.nhahang.vn; trống → LAN_IP:WEB_PORT
+WEB_PORT=80
+FORCE_SSL=false                  # true khi chạy sau HTTPS (Cloudflare Tunnel / reverse proxy)
+SECRET_KEY_BASE= JWT_SECRET= SOCKET_JWT_SECRET=   # openssl rand -hex 64, bắt buộc
+POSTGRES_PASSWORD=               # bắt buộc
+S3_ENDPOINT=https://<ACCOUNT_ID>.r2.cloudflarestorage.com   # R2; trống = AWS S3
+S3_REGION=auto                   # R2; AWS: ap-southeast-1
+S3_ACCESS_KEY= S3_SECRET_KEY= S3_BUCKET=
+```
+- Thiếu secret bắt buộc → compose báo lỗi, không chạy.
+- Endpoint S3-compatible: `storage.yml` đặt `request_checksum_calculation`/`response_checksum_validation` = `when_required`.
+- Bucket để private được (ảnh đi qua Rails proxy, D9).
+- HTTPS/domain ngoài phạm vi compose: đặt Cloudflare Tunnel hoặc reverse proxy phía trước cổng `WEB_PORT`.
+
 ## 9. Seed data
 - Users (mật khẩu `password`): `owner@demo.vn`, `manager@demo.vn`, `waiter@demo.vn`, `waiter2@demo.vn`, `kitchen@demo.vn`
 - 10 bàn (Tầng 1: 1–6, Tầng 2: 7–10)
@@ -295,12 +326,15 @@ make urls         # in URL truy cập (localhost + LAN)
 make ps           # trạng thái container
 make s3           # link + tài khoản S3 console
 make e2e          # test end-to-end toàn bộ flow
+make prod-env | prod-up | prod-down | prod-logs | prod-ps | prod-migrate | prod-seed | prod-console | prod-qr   # production
 ```
 
 ## 11. Cấu trúc thư mục
 ```
 restaurant-app/
-├── SPEC.md  README.md  Makefile  docker-compose.yml  .env.example
+├── SPEC.md  README.md  Makefile
+├── docker-compose.yml       .env.example              dev
+├── docker-compose.prod.yml  .env.production.example   production
 ├── api/      Rails 8
 ├── socket/   Node Socket.IO
 └── web/      React — src/sites/{customer,staff,manage}, src/shared
@@ -321,6 +355,7 @@ restaurant-app/
 - `make test`: RSpec cho service, model và request (order flow, checkout, báo cáo, phân quyền, ảnh).
 - `make e2e` (`web/scripts/e2e.mjs`): 30 điểm kiểm tra đi qua đúng cổng web như điện thoại thật, gồm REST, Socket.IO theo từng role và ảnh S3. Chạy `make e2e BASE=http://LAN_IP:5173` để test qua LAN.
 - Mỗi PR: `make test` + `make e2e` đều phải đạt.
+- PR đụng tới production: build và chạy thử `docker-compose.prod.yml` rồi chạy e2e vào stack đó (`make e2e BASE=http://host.docker.internal:<WEB_PORT>`).
 
 ## 13. Backlog (phase sau)
 - Thanh toán online (VietQR/MoMo), in bill / in phiếu bếp
@@ -344,3 +379,4 @@ restaurant-app/
 | 2026-10-13 | 1.7 | B5 xong (Staff Site). Màn đối chiếu mã khi xác nhận, sơ đồ bàn màu theo trạng thái, board bếp có đồng hồ chờ, tab Món hết. Socket dev chuyển sang nodemon polling (node --watch không nhận thay đổi file qua bind mount trên macOS) |
 | 2026-10-13 | 1.8 | B6 xong (Manage Site). Lỗi validation tiếng Việt, mật khẩu tối thiểu 6 ký tự, lưu lý do huỷ khi manager đổi trạng thái |
 | 2026-10-13 | 1.9 | B7 xong: `make e2e` (30 kiểm tra REST + realtime + ảnh), đã chạy qua LAN và trên bản clone sạch (`make setup` từ đầu). README đầy đủ (test trên điện thoại, kịch bản test, xử lý sự cố). Sửa `make help`. MVP hoàn tất |
+| 2026-10-13 | 1.10 | Thêm D10: tách `docker-compose.prod.yml` (nginx, image production, không RustFS) và `.env.production.example`. Hỗ trợ Cloudflare R2. Thêm `PUBLIC_URL` cho QR, `FORCE_SSL`, lệnh `make prod-*`. Đã chạy thử stack prod trên máy (thay R2 bằng RustFS), e2e 30/30 |
