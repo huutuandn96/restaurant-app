@@ -97,6 +97,8 @@ export default function CustomerApp() {
         )
       },
       'session.closed': () => setClosed(true),
+      // Quản lý đổi happy hour → giá menu đổi (SPEC §5.6)
+      'menu.refresh': () => void qc.invalidateQueries({ queryKey: ['public-menu'] }),
       // Chuyển bàn: cùng phiên, chỉ đổi số bàn (SPEC §2.5)
       'session.moved': (p) => {
         toast(`Bàn của bạn đã chuyển sang ${p.table.label}`)

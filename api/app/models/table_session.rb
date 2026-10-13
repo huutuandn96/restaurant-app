@@ -2,6 +2,8 @@ class TableSession < ApplicationRecord
   belongs_to :table
   belongs_to :closed_by, class_name: "User", optional: true
   belongs_to :merged_into, class_name: "TableSession", optional: true
+  belongs_to :voucher, optional: true
+  belongs_to :discount_by, class_name: "User", optional: true
   has_many :orders, dependent: :restrict_with_error
   has_many :staff_calls, dependent: :destroy
 

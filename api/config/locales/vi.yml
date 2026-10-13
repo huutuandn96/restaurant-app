@@ -7,12 +7,16 @@ vi:
       category: Danh mục
       order: Đơn
       reservation: Lượt đặt bàn
+      promotion: Khuyến mãi
+      voucher: Voucher
     attributes:
       user: { name: Họ tên, email: Email, password: Mật khẩu, role: Quyền }
       table: { number: Số bàn, seats: Số chỗ, area: Khu vực }
       menu_item: { name: Tên món, price: Giá, category: Danh mục, image: Ảnh }
       category: { name: Tên danh mục }
       order_item: { quantity: Số lượng }
+      promotion: { name: Tên chương trình, percent: Mức giảm (%), start_time: Giờ bắt đầu, end_time: Giờ kết thúc, weekdays: Ngày trong tuần }
+      voucher: { code: Mã, kind: Kiểu giảm, value: Mức giảm, max_discount: Giảm tối đa, min_spend: Đơn tối thiểu, usage_limit: Số lượt }
       reservation: { table: Bàn, customer_name: Tên khách, phone: Số điện thoại, party_size: Số người, reserved_at: Giờ đến }
     errors:
       messages:
@@ -33,6 +37,7 @@ vi:
       greater_than: phải lớn hơn %{count}
       greater_than_or_equal_to: phải lớn hơn hoặc bằng %{count}
       less_than_or_equal_to: phải nhỏ hơn hoặc bằng %{count}
+      less_than: phải nhỏ hơn %{count}
       too_short: quá ngắn (tối thiểu %{count} ký tự)
       too_long: quá dài (tối đa %{count} ký tự)
       confirmation: không khớp

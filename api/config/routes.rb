@@ -36,7 +36,10 @@ Rails.application.routes.draw do
           patch :batch, on: :collection
         end
         resources :table_sessions, only: [] do
-          get :bill, on: :member
+          member do
+            get :bill
+            put :discount
+          end
         end
         resources :menu_items, only: :update
         resources :reservations, only: %i[index create update] do
@@ -63,6 +66,8 @@ Rails.application.routes.draw do
         end
         get "reports/revenue", to: "reports#revenue"
         resources :users, only: %i[index create update]
+        resources :promotions, only: %i[index create update destroy]
+        resources :vouchers, only: %i[index create update destroy]
       end
     end
   end

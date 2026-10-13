@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
+ActiveRecord::Schema[8.1].define(version: 2026_10_14_000003) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -86,6 +86,8 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
     t.datetime "done_at"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "original_price"
+    t.string "promotion_name"
     t.index ["menu_item_id"], name: "index_order_items_on_menu_item_id"
     t.index ["order_id"], name: "index_order_items_on_order_id"
   end
@@ -105,6 +107,7 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
     t.string "cancel_reason"
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.integer "discount", default: 0, null: false
     t.index ["code"], name: "index_orders_on_code", unique: true
     t.index ["completed_at"], name: "index_orders_on_completed_at"
     t.index ["confirmed_by_id"], name: "index_orders_on_confirmed_by_id"
@@ -112,6 +115,21 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
     t.index ["status"], name: "index_orders_on_status"
     t.index ["table_id"], name: "index_orders_on_table_id"
     t.index ["table_session_id"], name: "index_orders_on_table_session_id"
+  end
+
+  create_table "promotions", force: :cascade do |t|
+    t.string "name", null: false
+    t.integer "percent", null: false
+    t.integer "category_ids", default: [], null: false, array: true
+    t.integer "menu_item_ids", default: [], null: false, array: true
+    t.integer "weekdays", default: [], null: false, array: true
+    t.string "start_time", null: false
+    t.string "end_time", null: false
+    t.date "starts_on"
+    t.date "ends_on"
+    t.boolean "active", default: true, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "reservations", force: :cascade do |t|
@@ -157,11 +175,19 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.bigint "merged_into_id"
+    t.bigint "voucher_id"
+    t.string "manual_discount_kind"
+    t.integer "manual_discount_value"
+    t.string "manual_discount_reason"
+    t.bigint "discount_by_id"
+    t.integer "discount_total", default: 0, null: false
     t.index ["closed_by_id"], name: "index_table_sessions_on_closed_by_id"
+    t.index ["discount_by_id"], name: "index_table_sessions_on_discount_by_id"
     t.index ["merged_into_id"], name: "index_table_sessions_on_merged_into_id"
     t.index ["session_token"], name: "index_table_sessions_on_session_token", unique: true
     t.index ["table_id"], name: "index_table_sessions_on_table_id"
     t.index ["table_id"], name: "index_table_sessions_one_open_per_table", unique: true, where: "((status)::text = 'open'::text)"
+    t.index ["voucher_id"], name: "index_table_sessions_on_voucher_id"
   end
 
   create_table "tables", force: :cascade do |t|
@@ -187,6 +213,23 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
     t.index ["email"], name: "index_users_on_email", unique: true
   end
 
+  create_table "vouchers", force: :cascade do |t|
+    t.string "code", null: false
+    t.string "kind", null: false
+    t.integer "value", null: false
+    t.integer "max_discount"
+    t.integer "min_spend", default: 0, null: false
+    t.datetime "starts_at"
+    t.datetime "ends_at"
+    t.integer "usage_limit"
+    t.integer "used_count", default: 0, null: false
+    t.boolean "active", default: true, null: false
+    t.string "note"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["code"], name: "index_vouchers_on_code", unique: true
+  end
+
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "menu_items", "categories"
@@ -205,4 +248,6 @@ ActiveRecord::Schema[8.1].define(version: 2026_10_14_000002) do
   add_foreign_key "table_sessions", "table_sessions", column: "merged_into_id"
   add_foreign_key "table_sessions", "tables"
   add_foreign_key "table_sessions", "users", column: "closed_by_id"
+  add_foreign_key "table_sessions", "users", column: "discount_by_id"
+  add_foreign_key "table_sessions", "vouchers"
 end

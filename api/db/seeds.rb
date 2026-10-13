@@ -6,7 +6,7 @@ puts "Xoá dữ liệu cũ..."
 ActiveStorage::Attachment.delete_all
 ActiveStorage::VariantRecord.delete_all
 ActiveStorage::Blob.find_each(&:purge)
-[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, MenuItem, Category, Table, User].each(&:delete_all)
+[Reservation, OrderEvent, OrderItem, Order, StaffCall, TableSession, Voucher, Promotion, MenuItem, Category, Table, User].each(&:delete_all)
 
 puts "Users..."
 [
@@ -196,6 +196,14 @@ evening += 1.day if evening < now + 2.hours
 ].each do |table, name, phone, size, at, note|
   Reservation.create!(table:, customer_name: name, phone:, party_size: size, reserved_at: at, note:, created_by: waiter_an)
 end
+
+puts "Khuyến mãi..."
+drinks = Category.find_by!(name: "Đồ uống")
+Promotion.create!(name: "Happy hour đồ uống", percent: 20, category_ids: [drinks.id], start_time: "14:00", end_time: "18:00")
+Promotion.create!(name: "Giờ vàng cuối tuần", percent: 10, start_time: "21:00", end_time: "23:00", weekdays: [5, 6, 0])
+Voucher.create!(code: "KM10", kind: "percent", value: 10, max_discount: 50_000, min_spend: 300_000, note: "Khách quen")
+Voucher.create!(code: "GIAM50K", kind: "amount", value: 50_000, min_spend: 500_000, usage_limit: 100, ends_at: 30.days.from_now.end_of_day)
+Voucher.create!(code: "KHAITRUONG", kind: "percent", value: 20, ends_at: 10.days.ago, note: "Đã hết hạn")
 
 puts "Xong: #{User.count} users, #{Table.count} bàn, #{MenuItem.count} món, #{Order.count} đơn"
 puts "Đăng nhập (mật khẩu: password): owner@demo.vn, manager@demo.vn, waiter@demo.vn, kitchen@demo.vn"

@@ -22,7 +22,7 @@ module Realtime
   end
 
   def menu_item_changed(item)
-    publish(rooms: %w[waiters kitchen managers guests], event: "menu_item.updated", payload: MenuSerializer.item(item))
+    publish(rooms: %w[waiters kitchen managers guests], event: "menu_item.updated", payload: MenuSerializer.item(item, pricing: Promotions::Pricing.new))
   end
 
   def redis

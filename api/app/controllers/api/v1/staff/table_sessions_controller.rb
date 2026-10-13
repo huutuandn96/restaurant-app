@@ -8,6 +8,14 @@ module Api
         def bill
           render json: Bills::Build.call(TableSession.includes(:table, :closed_by).find(params[:id]))
         end
+
+        # PUT /staff/table_sessions/:id/discount {voucher_code, manual_kind, manual_value, reason} (SPEC §5.6)
+        def discount
+          session = TableSession.find(params[:id])
+          Discounts::Apply.call(session, user: current_user, voucher_code: params[:voucher_code],
+                                         manual_kind: params[:manual_kind], manual_value: params[:manual_value], reason: params[:reason])
+          render json: Bills::Build.call(session.reload)
+        end
       end
     end
   end

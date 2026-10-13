@@ -11,6 +11,8 @@ export type OrderItem = {
   menu_item_id: number
   name: string
   price: number
+  original_price: number | null // happy hour (SPEC §5.6)
+  promotion: string | null
   quantity: number
   subtotal: number
   note: string | null
@@ -34,6 +36,7 @@ export type Order = {
   status: OrderStatus
   note: string | null
   total: number
+  discount: number // phần giảm giá hoá đơn phân bổ khi thanh toán
   table: TableRef
   table_session_id: number
   verify_code: string
@@ -73,6 +76,9 @@ export type MenuItem = {
   image_url: string | null
   available: boolean
   position: number
+  // Chỉ có ở menu khách khi đang happy hour (SPEC §5.6)
+  original_price?: number | null
+  promotion?: string | null
 }
 
 export type Category = { id: number; name: string; position: number; active: boolean; items?: MenuItem[] }
@@ -117,6 +123,7 @@ export type RealtimeEvents = {
   'menu_item.updated': MenuItem
   'session.closed': { table_session_id: number }
   'reservation.updated': Reservation
+  'menu.refresh': Record<string, never>
   // Chuyển / gộp bàn (SPEC §2.5): table = bàn mới của khách
   'session.moved': { table_session_id: number; table: Table }
   'session.merged': { table_session_id: number; table: Table }
@@ -133,8 +140,13 @@ export type Bill = {
   closed_at: string | null
   cashier: string | null
   order_codes: string[]
-  lines: { name: string; price: number; quantity: number; amount: number }[]
+  lines: { name: string; price: number; quantity: number; amount: number; original_price: number | null; promotion: string | null }[]
+  subtotal: number
+  discounts: { kind: 'voucher' | 'manual'; label: string; amount: number; error?: string | null; reason?: string | null; by?: string | null }[]
+  discount_total: number
   total: number
+  voucher_code: string | null
+  manual_discount: { kind: 'percent' | 'amount'; value: number; reason: string } | null
   restaurant: { name: string; address: string | null; phone: string | null; footer: string }
   printed_at: string
 }

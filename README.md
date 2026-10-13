@@ -53,7 +53,7 @@ Mật khẩu chung: `password`. Màn đăng nhập có sẵn nút đăng nhập 
 | `waiter@demo.vn`, `waiter2@demo.vn` | Phục vụ | Staff: Đơn, Bàn |
 | `kitchen@demo.vn` | Bếp | Staff: Bếp, Món hết |
 
-Dữ liệu demo gồm 10 bàn (Tầng 1: 1–6, Tầng 2: 7–10), 6 danh mục và 34 món, lịch sử 30 ngày cho báo cáo, cùng vài đơn hôm nay ở đủ các trạng thái. Chạy `make reset-db` để làm mới dữ liệu.
+Dữ liệu demo gồm 10 bàn (Tầng 1: 1–6, Tầng 2: 7–10), 6 danh mục và 34 món, lịch sử 30 ngày cho báo cáo, cùng vài đơn hôm nay ở đủ các trạng thái. Có sẵn 4 lượt đặt bàn, 2 chương trình giảm theo khung giờ và voucher `KM10` (10%, tối đa 50k, đơn từ 300k), `GIAM50K` (50k, đơn từ 500k), `KHAITRUONG` (đã hết hạn). Chạy `make reset-db` để làm mới dữ liệu.
 
 ## 4. Kịch bản test thủ công
 
@@ -75,9 +75,10 @@ Nên dùng 3 thiết bị (hoặc 3 tab trình duyệt): khách, phục vụ, b�
 | 9b | Phục vụ | Trước bước 9: **Bàn 06 → 🖨️ Tạm tính**. Ở bước 9 giữ tick *In hoá đơn sau khi đóng bàn* | Hộp thoại in hiện phiếu 80mm: tạm tính, rồi hoá đơn có thu ngân |
 | 9c | Phục vụ | **Bàn 06 → ⇄ Chuyển / gộp bàn** → chọn bàn trống (chuyển) hoặc bàn có khách (gộp) | Điện thoại khách tự đổi số bàn; khi gộp, khách nhận mã của bàn đích và vẫn gọi món tiếp, giỏ hàng giữ nguyên |
 | 9d | Phục vụ | **📅 Đặt bàn → + Đặt bàn**, thử đặt trùng giờ cùng bàn; sau đó **Khách đã đến** | Đặt trùng báo lỗi; sơ đồ bàn hiện ô tím giữ chỗ; khách đến → bàn mở phiên, có mã xác nhận |
+| 9e | Phục vụ | Trong giờ happy hour (seed: đồ uống −20%, 14:00–18:00), khách gọi đồ uống. Khi thanh toán nhập mã **KM10**, thêm *Giảm giá thêm* 5% + lý do | Menu khách hiện giá gạch ngang; modal thanh toán và hoá đơn hiện tạm tính, voucher, giảm tay, khách cần trả. Phục vụ giảm quá 10% bị chặn |
 | 10 | Quản lý | **Tổng quan**, **Đơn hàng**, **Doanh thu** (chỉ owner) → Xuất CSV | Số liệu cập nhật realtime. CSV mở bằng Excel không lỗi tiếng Việt |
 
-Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (37 điểm kiểm tra).
+Phần lớn kịch bản này đã được tự động hoá trong `make e2e` (40 điểm kiểm tra).
 
 **In phiếu:** app in qua hộp thoại in của trình duyệt, khổ 80mm. Cài máy in nhiệt (USB/LAN/Bluetooth) trên thiết bị rồi chọn nó trong hộp thoại; không có máy in thì chọn *Lưu thành PDF*. Trên máy bếp muốn in thẳng không hỏi: mở Chrome bằng `--kiosk-printing` và đặt máy in nhiệt làm mặc định. Tên, địa chỉ, SĐT quán trên hoá đơn đặt bằng `RESTAURANT_*` trong `.env`.
 

@@ -19,7 +19,7 @@ module Api
             in_progress: %w[confirmed preparing].sum { |s| counts[s].to_i },
             done: %w[ready completed].sum { |s| counts[s].to_i },
             cancelled: counts["cancelled"].to_i,
-            revenue: Order.completed.where(completed_at: Time.current.all_day).sum(:total),
+            revenue: Order.completed.where(completed_at: Time.current.all_day).sum(Arel.sql("total - discount")),
             pending_revenue: today.where(status: Order::KITCHEN_STATUSES).sum(:total),
             occupied_tables: Table.occupied.count,
             total_tables: Table.count,

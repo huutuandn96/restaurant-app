@@ -12,6 +12,7 @@ import MenuPage from './MenuPage'
 import TablesPage from './TablesPage'
 import ReportsPage from './ReportsPage'
 import UsersPage from './UsersPage'
+import PromotionsPage from './PromotionsPage'
 
 export default function ManageApp() {
   const user = useAuth((s) => s.user)
@@ -44,6 +45,7 @@ function Shell() {
     { to: '/manage/orders', label: 'Đơn hàng', icon: '🧾' },
     { to: '/manage/menu', label: 'Thực đơn', icon: '🍜' },
     { to: '/manage/tables', label: 'Bàn & QR', icon: '🪑' },
+    { to: '/manage/promotions', label: 'Khuyến mãi', icon: '🎟️' },
     ...(isOwner
       ? [
           { to: '/manage/reports', label: 'Doanh thu', icon: '💰' },
@@ -108,6 +110,7 @@ function Shell() {
             <Route path="orders" element={<OrdersPage />} />
             <Route path="menu" element={<MenuPage />} />
             <Route path="tables" element={<TablesPage />} />
+            <Route path="promotions" element={<PromotionsPage />} />
             {isOwner && <Route path="reports" element={<ReportsPage />} />}
             {isOwner && <Route path="users" element={<UsersPage />} />}
             <Route path="*" element={<Navigate to="/manage/dashboard" replace />} />

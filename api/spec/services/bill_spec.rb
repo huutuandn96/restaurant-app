@@ -24,8 +24,8 @@ RSpec.describe Bills::Build do
     bill = described_class.call(session.reload)
     expect(bill[:provisional]).to be(true)
     expect(bill[:lines]).to contain_exactly(
-      { name: "Phở", price: 65_000, quantity: 3, amount: 195_000 },
-      { name: "Trà đá", price: 5_000, quantity: 1, amount: 5_000 }
+      a_hash_including(name: "Phở", price: 65_000, quantity: 3, amount: 195_000),
+      a_hash_including(name: "Trà đá", price: 5_000, quantity: 1, amount: 5_000)
     )
     expect(bill[:total]).to eq(200_000).and eq(session.total)
     expect(bill[:bill_no]).to eq(format("HD%06d", session.id))

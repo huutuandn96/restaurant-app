@@ -13,10 +13,11 @@ module Bills
     def call
       orders = @session.orders.where.not(status: "cancelled").includes(:order_items).order(:created_at)
       items = orders.flat_map(&:order_items).reject(&:out_of_stock?)
-      lines = items.group_by { |i| [i.name_snapshot, i.price_snapshot] }.map do |(name, price), group|
+      lines = items.group_by { |i| [i.name_snapshot, i.price_snapshot, i.promotion_name] }.map do |(name, price, promo), group|
         qty = group.sum(&:quantity)
-        { name:, price:, quantity: qty, amount: price * qty }
+        { name:, price:, quantity: qty, amount: price * qty, original_price: group.first.original_price, promotion: promo }
       end
+      calc = Discounts::Calculate.call(@session)
 
       {
         bill_no: format("HD%06d", @session.id),
@@ -28,7 +29,14 @@ module Bills
         cashier: @session.closed_by&.name,
         order_codes: orders.map(&:code),
         lines:,
-        total: orders.sum(&:total),
+        subtotal: calc[:subtotal],
+        discounts: calc[:discounts],
+        discount_total: calc[:discount_total],
+        total: calc[:total],
+        voucher_code: @session.voucher&.code,
+        manual_discount: @session.manual_discount_kind && {
+          kind: @session.manual_discount_kind, value: @session.manual_discount_value, reason: @session.manual_discount_reason
+        },
         restaurant: self.class.restaurant,
         printed_at: Time.current
       }

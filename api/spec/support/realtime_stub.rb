@@ -6,6 +6,7 @@ end
 
 RSpec.configure do |config|
   config.include FactoryBot::Syntax::Methods
+  config.include ActiveSupport::Testing::TimeHelpers
   config.before do
     RealtimeSpy.reset!
     allow(Realtime).to receive(:publish) { |**kw| RealtimeSpy.events << kw }
