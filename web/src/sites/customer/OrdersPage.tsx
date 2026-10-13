@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { money, time } from '../../shared/format'
 import { useGuest } from './session'
-import { ItemStatus, OrderBadge } from './ui'
+import { ItemStatus, OrderBadge } from '../../shared/ui'
 
 export default function OrdersPage() {
   const { session, qrToken } = useGuest()

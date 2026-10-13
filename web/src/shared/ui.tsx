@@ -1,6 +1,7 @@
+import type React from 'react'
 import { useState } from 'react'
-import type { OrderItemStatus, OrderStatus } from '../../shared/types'
-import { ITEM_STATUS_LABEL, ORDER_STATUS_LABEL } from '../../shared/format'
+import type { OrderItemStatus, OrderStatus } from './types'
+import { ITEM_STATUS_LABEL, ORDER_STATUS_LABEL } from './format'
 
 export function FoodImage({ src, alt, className = '' }: { src: string | null; alt: string; className?: string }) {
   const [failed, setFailed] = useState(false)
@@ -58,4 +59,28 @@ export function ItemStatus({ status }: { status: OrderItemStatus }) {
 
 export function Spinner() {
   return <div className="h-8 w-8 animate-spin rounded-full border-4 border-brand-100 border-t-brand-500" />
+}
+
+export function Modal({ title, onClose, children }: { title: string; onClose: () => void; children: React.ReactNode }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
+      <div className="absolute inset-0 bg-black/40" onClick={onClose} />
+      <div className="relative w-full max-w-md rounded-t-3xl bg-white p-5 shadow-2xl sm:rounded-3xl">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-bold">{title}</h2>
+          <button onClick={onClose} className="grid h-8 w-8 place-items-center rounded-full bg-stone-100" aria-label="Đóng">✕</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+}
+
+export function EmptyState({ icon, text }: { icon: string; text: string }) {
+  return (
+    <div className="py-16 text-center text-stone-400">
+      <div className="text-4xl">{icon}</div>
+      <p className="mt-2">{text}</p>
+    </div>
+  )
 }

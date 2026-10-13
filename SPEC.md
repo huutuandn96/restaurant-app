@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.6 · **Ngày tạo:** 2026-10-13
+**Version:** 1.7 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -33,7 +33,7 @@ docker-compose
 ├── redis   Redis 7 (pub/sub, Sidekiq, cache) chỉ nội bộ
 ├── api     Rails 8.1 API-only                host :3001 (API_PORT)
 ├── worker  Sidekiq 8
-├── socket  Node 22 + Socket.IO + ioredis     host :4000
+├── socket  Node 22 + Socket.IO + ioredis     host :4000 (dev: nodemon --legacy-watch)
 ├── s3      RustFS (S3 giả lập) + console     host :9001 (S3_CONSOLE_PORT), API nội bộ :9000
 ├── s3-init AWS CLI tạo bucket rồi thoát
 └── web     React 19 + Vite (3 site)          host :5173  ← cổng duy nhất cho client
@@ -184,19 +184,23 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 > Ảnh món: từ S3 qua Rails proxy (§0 D9). Giỏ hàng lưu trong sessionStorage được đồng bộ lại (giá/ảnh/tình trạng) mỗi khi tải menu.
 
 ### 5.2 Staff Site — mobile + iPad
-- [ ] Login email + password (JWT)
+- [x] Login email + password (JWT), nút đăng nhập nhanh tài khoản demo
+- Thanh điều hướng dưới theo role: phục vụ → **Đơn**, **Bàn**; bếp → **Bếp**, **Món hết**; manager/owner thấy cả 4
 - **Phục vụ**
-  - [ ] Sơ đồ bàn (§2.3.3)
-  - [ ] Tabs: Chờ xác nhận / Đang làm / Sẵn sàng mang ra
-  - [ ] Order card: **BÀN xx**, verify code, mã order, giờ, món, SL, giá, tổng
-  - [ ] Xác nhận → gửi bếp · Huỷ (kèm lý do)
-  - [ ] Chi tiết bàn: tất cả order của session + tổng → **Thanh toán & đóng bàn** (completed + đóng session, QR giữ nguyên)
-  - [ ] Nhận realtime: order mới (âm thanh/rung), bếp done, hết món, gọi nhân viên
+  - [x] Sơ đồ bàn (§2.3.3): đỏ nhấp nháy = có đơn chờ / khách gọi; xanh = có món sẵn sàng; cam nhạt = có khách; trắng = trống. Hiện mã xác nhận, tổng tiền, thời gian ngồi
+  - [x] Tabs: Chờ xác nhận / Đang làm / Sẵn sàng (đếm số đơn)
+  - [x] Order card: **BÀN xx**, verify code, mã order, giờ, “x phút trước”, món, ghi chú, SL, giá, tổng
+  - [x] Xác nhận → **màn đối chiếu mã** (mã to) → “Khớp → Gửi bếp” / “Mã không khớp”
+  - [x] Huỷ (chọn lý do)
+  - [x] Chi tiết bàn: tất cả order của session + tổng → **Thanh toán & đóng bàn** (cảnh báo nếu còn đơn chưa xác nhận sẽ bị huỷ)
+  - [x] Realtime: đơn mới (âm thanh/rung + toast “Bàn 05 vừa đặt 3 món”), đơn sẵn sàng, hết món, khách gọi nhân viên (banner + nút “Đã đến”)
 - **Bếp**
-  - [ ] Board order đã xác nhận, cũ → mới, đồng hồ thời gian chờ
-  - [ ] Filter theo order / bàn / trạng thái
-  - [ ] Done từng món · Done cả order · Hết món từng item (option hết cả menu)
-  - [ ] Mọi thao tác realtime về phục vụ + khách
+  - [x] Board đơn đã xác nhận, xếp theo giờ xác nhận (cũ → mới), đồng hồ chờ (≥15′ vàng, ≥25′ đỏ)
+  - [x] Filter: Cần làm / Mới / Đang làm / Đã xong + filter theo bàn
+  - [x] Từng món: Bắt đầu / ✓ Xong / Hết (+ hoàn tác Xong) · **Xong cả đơn**
+  - [x] Báo hết món: tuỳ chọn “Hết cả menu” (mặc định bật)
+  - [x] Tab **Món hết**: bật lại món đã hết, báo hết món bất kỳ
+  - [x] Mọi thao tác realtime về phục vụ + khách
 
 ### 5.3 Manage Site — mobile + iPad + desktop
 - [ ] Login (manager/owner)
@@ -305,7 +309,7 @@ restaurant-app/
 - [x] **B2** Models, migrations, seed, auth, API, publisher realtime phía server, rspec services
 - [x] **B3** Realtime phía client: hook socket React, auto reconnect + refetch, âm thanh/rung, trang `/dev/realtime`
 - [x] **B4** User Site
-- [ ] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
+- [x] **B5** Staff Site (phục vụ + bếp + sơ đồ bàn)
 - [ ] **B6** Manage Site (dashboard, orders, menu, bàn/QR, báo cáo CSV, nhân viên)
 - [ ] **B7** Test E2E qua LAN trên điện thoại + README
 
@@ -328,3 +332,4 @@ restaurant-app/
 | 2026-10-13 | 1.4 | B3 xong. Bếp nhận cả event completed/cancelled của đơn đã xác nhận (để gỡ khỏi board). Mô tả lớp realtime phía client + trang `/dev/realtime` |
 | 2026-10-13 | 1.5 | B4 xong (User Site). Ảnh demo chuyển sang SVG local (loremflickr trả 401). Ghi rõ quy tắc POST/GET session phía khách |
 | 2026-10-13 | 1.6 | Thêm D9: Active Storage + S3, local dùng RustFS (MinIO không còn image). Upload/xoá ảnh món qua API manage. Ảnh demo chuyển lên S3. Vite proxy thêm `/rails`. Giỏ hàng tự đồng bộ với menu |
+| 2026-10-13 | 1.7 | B5 xong (Staff Site). Màn đối chiếu mã khi xác nhận, sơ đồ bàn màu theo trạng thái, board bếp có đồng hồ chờ, tab Món hết. Socket dev chuyển sang nodemon polling (node --watch không nhận thay đổi file qua bind mount trên macOS) |
