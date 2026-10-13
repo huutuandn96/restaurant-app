@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.1 · **Ngày tạo:** 2026-10-13
+**Version:** 1.2 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -20,6 +20,7 @@
 | D5 | Vị trí | `/Users/macbook_320/personal/restaurant-app` |
 | D6 | Môi trường | Local, chạy toàn bộ bằng Docker Compose; QR dùng `LAN_IP` trong `.env` |
 | D7 | Tiền / giờ | VND (integer), timezone `Asia/Ho_Chi_Minh` |
+| D8 | Một cổng truy cập | Client chỉ gọi `http://LAN_IP:5173`; Vite proxy `/api` → Rails, `/socket.io` → Socket server (không cần CORS/IP riêng cho API) |
 
 ---
 
@@ -27,18 +28,18 @@
 
 ```
 docker-compose
-├── db      PostgreSQL 16                     :5432
-├── redis   Redis 7 (pub/sub, Sidekiq, cache) :6379
-├── api     Rails 8 API-only                  :3000
-├── worker  Sidekiq
-├── socket  Node 20 + Socket.IO + ioredis     :4000
-└── web     React + Vite (3 site theo route)  :5173
+├── db      PostgreSQL 16                     host :5433 (DB_PORT)
+├── redis   Redis 7 (pub/sub, Sidekiq, cache) chỉ nội bộ
+├── api     Rails 8.1 API-only                host :3001 (API_PORT)
+├── worker  Sidekiq 8
+├── socket  Node 22 + Socket.IO + ioredis     host :4000
+└── web     React 19 + Vite (3 site)          host :5173  ← cổng duy nhất cho client
 ```
 
 **Luồng realtime**
 1. Client gọi REST → Rails xử lý nghiệp vụ, ghi DB.
-2. Rails `PUBLISH restaurant:events {room, event, payload}` lên Redis.
-3. Socket server subscribe → `io.to(room).emit(event, payload)`.
+2. Rails `PUBLISH restaurant:events {rooms: [...], event, payload}` lên Redis.
+3. Socket server subscribe → `io.to(rooms).emit(event, payload)` (gộp room, không gửi trùng).
 
 **Rooms**
 | Room | Thành viên |
@@ -48,7 +49,9 @@ docker-compose
 | `kitchen` | Role kitchen |
 | `managers` | Role manager, owner |
 
-**Auth socket:** staff/manager gửi JWT; khách gửi `session_token`. Socket server verify bằng `SOCKET_JWT_SECRET` dùng chung với Rails.
+**Auth socket:** client gửi `auth.token` là JWT do Rails ký bằng `SOCKET_JWT_SECRET`.
+- Staff: `{kind: "staff", role, user_id}` → join room theo role.
+- Khách: `{kind: "guest", table_session_id}` → join `table_session:{id}`.
 
 **Events**
 | Event | Gửi tới | Khi nào |
@@ -212,16 +215,17 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 ---
 
 ## 7. Tech stack
-- **BE**: Rails 8 API, bcrypt, jwt, pundit, sidekiq, rack-cors, redis, rspec (service chính)
-- **FE**: React 18 + Vite + TS, TailwindCSS, React Router, TanStack Query, Zustand, socket.io-client, qrcode.react
-- **Socket**: Node 20, socket.io, ioredis, jsonwebtoken
+- **BE**: Rails 8.1 API (Ruby 3.3), bcrypt, jwt, pundit, sidekiq 8, rack-cors, redis, rqrcode, rspec + factory_bot
+- **FE**: React 19 + Vite + TS, TailwindCSS, React Router, TanStack Query, Zustand, socket.io-client, qrcode.react
+- **Socket**: Node 22, socket.io, ioredis, jsonwebtoken
 
 ## 8. ENV (`.env.example`)
 ```
 LAN_IP=192.168.1.10
 WEB_PORT=5173
-API_PORT=3000
+API_PORT=3001
 SOCKET_PORT=4000
+DB_PORT=5433
 POSTGRES_USER=postgres
 POSTGRES_PASSWORD=postgres
 POSTGRES_DB=restaurant_development
@@ -240,7 +244,7 @@ TZ=Asia/Ho_Chi_Minh
 
 ## 10. Makefile
 ```
-make setup        # .env, build, db create/migrate/seed
+make setup        # .env + detect IP + build + db:prepare + up
 make up | down | restart | logs [s=api]
 make migrate | seed | reset-db
 make console      # rails c
@@ -248,6 +252,8 @@ make bash s=api
 make test
 make ip           # detect LAN IP (macOS) → ghi vào .env
 make qr           # in URL QR các bàn
+make urls         # in URL truy cập (localhost + LAN)
+make ps           # trạng thái container
 ```
 
 ## 11. Cấu trúc thư mục
@@ -260,7 +266,7 @@ restaurant-app/
 ```
 
 ## 12. Lộ trình triển khai
-- [ ] **B1** Khung Docker + Makefile + Rails + React + socket chạy được `make setup`
+- [x] **B1** Khung Docker + Makefile + Rails + React + socket chạy được `make setup`
 - [ ] **B2** Models, migrations, seed, auth, API
 - [ ] **B3** Realtime (publisher + socket rooms + auth)
 - [ ] **B4** User Site
@@ -282,3 +288,4 @@ restaurant-app/
 |---|---|---|
 | 2026-10-13 | 1.0 | Khởi tạo spec. Chốt D1–D7. Thêm cơ chế định danh bàn (table session + verify code + sơ đồ bàn) |
 | 2026-10-13 | 1.1 | Sửa D3: QR tĩnh không đổi; chỉ session_token + verify_code đổi theo mỗi lượt khách. Thêm quy tắc 1 session open/bàn và chống order từ xa |
+| 2026-10-13 | 1.2 | B1 xong. Thêm D8 (Vite proxy 1 cổng). Port host: API 3001, DB 5433 (tránh xung đột). Chốt version: Rails 8.1, React 19, Node 22, Sidekiq 8. Định dạng message Redis + claims JWT socket |
