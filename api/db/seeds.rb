@@ -2,6 +2,10 @@
 srand(42)
 
 puts "Xoá dữ liệu cũ..."
+# Xoá file trên S3 trước (delete_all không chạy callback purge)
+ActiveStorage::Attachment.delete_all
+ActiveStorage::VariantRecord.delete_all
+ActiveStorage::Blob.find_each(&:purge)
 [OrderEvent, OrderItem, Order, StaffCall, TableSession, MenuItem, Category, Table, User].each(&:delete_all)
 
 puts "Users..."
@@ -20,7 +24,9 @@ tables = (1..10).map do |n|
   Table.create!(number: n, area: n <= 6 ? "Tầng 1" : "Tầng 2", seats: [2, 4, 4, 6].sample)
 end
 
-# Ảnh minh hoạ SVG nằm ở web/public/images/menu (không cần internet)
+# Ảnh demo: api/db/seed_images/*.png → upload lên S3 (local: RustFS) qua Active Storage
+SEED_IMAGES = Rails.root.join("db/seed_images")
+
 def vn_slug(s)
   s.tr("đĐ", "dD").unicode_normalize(:nfd).gsub(/\p{Mn}/, "").downcase.gsub(/[^a-z0-9]+/, "-").gsub(/\A-|-\z/, "")
 end
@@ -77,8 +83,10 @@ MENU = {
 MENU.each_with_index do |((cat_name, _keyword), items), ci|
   cat = Category.create!(name: cat_name, position: ci)
   items.each_with_index do |(name, price, desc), ii|
-    cat.menu_items.create!(name:, price:, description: desc, position: ii,
-                           image_url: "/images/menu/#{vn_slug(name)}.svg")
+    item = cat.menu_items.new(name:, price:, description: desc, position: ii)
+    file = SEED_IMAGES.join("#{vn_slug(name)}.png")
+    item.image.attach(io: File.open(file), filename: file.basename.to_s, content_type: "image/png") if file.exist?
+    item.save!
   end
 end
 MenuItem.find_by(name: "Lẩu riêu cua bắp bò").update!(available: false) # demo món hết

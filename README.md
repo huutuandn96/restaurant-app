@@ -36,3 +36,5 @@ make reset-db      # xoá và seed lại dữ liệu demo
 | socket | Socket.IO (nhận event qua Redis pub/sub) | 4000 |
 | db | PostgreSQL 16 | 5433 |
 | redis | Redis 7 | – |
+| s3 | RustFS, giả lập S3 cho ảnh (`make s3` để xem console) | 9001 |
+| s3-init | Tạo bucket lúc khởi động | – |

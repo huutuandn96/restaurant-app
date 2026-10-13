@@ -12,6 +12,11 @@ x-api-env: &api-env
   LAN_IP: ${LAN_IP}
   WEB_PORT: ${WEB_PORT}
   TZ: ${TZ}
+  S3_ENDPOINT: ${S3_ENDPOINT}
+  S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+  S3_SECRET_KEY: ${S3_SECRET_KEY}
+  S3_BUCKET: ${S3_BUCKET}
+  S3_REGION: ${S3_REGION}
 
 services:
   db:
@@ -38,6 +43,41 @@ services:
       interval: 5s
       retries: 10
 
+  # S3 giả lập (SPEC D9) — RustFS, tương thích S3 API, có web console.
+  # Production: bỏ s3 + s3-init, trỏ S3_* sang AWS S3.
+  s3:
+    image: rustfs/rustfs:latest
+    environment:
+      RUSTFS_ACCESS_KEY: ${S3_ACCESS_KEY}
+      RUSTFS_SECRET_KEY: ${S3_SECRET_KEY}
+      RUSTFS_ADDRESS: ":9000"
+      RUSTFS_CONSOLE_ENABLE: "true"
+      RUSTFS_CONSOLE_ADDRESS: ":9001"
+    volumes:
+      - s3_data:/data
+    ports:
+      - "${S3_CONSOLE_PORT}:9001"
+
+  # Tạo bucket 1 lần (bằng chính AWS CLI) rồi thoát
+  s3-init:
+    image: amazon/aws-cli:latest
+    depends_on:
+      - s3
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      AWS_DEFAULT_REGION: ${S3_REGION}
+      S3_BUCKET: ${S3_BUCKET}
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        for i in $$(seq 1 30); do
+          aws --endpoint-url http://s3:9000 s3api head-bucket --bucket "$$S3_BUCKET" 2>/dev/null && { echo "bucket ready"; exit 0; }
+          aws --endpoint-url http://s3:9000 s3api create-bucket --bucket "$$S3_BUCKET" >/dev/null 2>&1 && { echo "bucket created"; exit 0; }
+          echo "waiting for s3..."; sleep 2
+        done
+        exit 1
+
   api:
     build:
       context: ./api
@@ -51,6 +91,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
+      s3-init: { condition: service_completed_successfully }
     stdin_open: true
     tty: true
 
@@ -66,6 +107,7 @@ services:
     depends_on:
       db: { condition: service_healthy }
       redis: { condition: service_healthy }
+      s3-init: { condition: service_completed_successfully }
 
   socket:
     build: ./socket
@@ -99,6 +141,7 @@ services:
 volumes:
   pg_data:
   redis_data:
+  s3_data:
   bundle:
   socket_node_modules:
   web_node_modules:

@@ -47,3 +47,6 @@ group :development, :test do
   gem "rspec-rails", "~> 7.1"
   gem "factory_bot_rails"
 end
+
+gem "aws-sdk-s3", "~> 1.170", require: false
+gem "image_processing", "~> 1.13"

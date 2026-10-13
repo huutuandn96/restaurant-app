@@ -5,7 +5,7 @@
 > - Bổ sung tính năng mới: thêm vào đúng section tương ứng + ghi vào **Changelog** cuối file.
 > - Đánh dấu trạng thái: `[ ]` chưa làm · `[~]` đang làm · `[x]` xong.
 
-**Version:** 1.5 · **Ngày tạo:** 2026-10-13
+**Version:** 1.6 · **Ngày tạo:** 2026-10-13
 
 ---
 
@@ -20,7 +20,8 @@
 | D5 | Vị trí | `/Users/macbook_320/personal/restaurant-app` |
 | D6 | Môi trường | Local, chạy toàn bộ bằng Docker Compose; QR dùng `LAN_IP` trong `.env` |
 | D7 | Tiền / giờ | VND (integer), timezone `Asia/Ho_Chi_Minh` |
-| D8 | Một cổng truy cập | Client chỉ gọi `http://LAN_IP:5173`; Vite proxy `/api` → Rails, `/socket.io` → Socket server (không cần CORS/IP riêng cho API) |
+| D8 | Một cổng truy cập | Client chỉ gọi `http://LAN_IP:5173`; Vite proxy `/api` + `/rails` → Rails, `/socket.io` → Socket server (không cần CORS/IP riêng cho API) |
+| D9 | Lưu file | **Active Storage + S3**. Local dùng **RustFS** (S3-compatible, container `s3`) thay MinIO (image MinIO không còn pull được). Ảnh phục vụ qua **Rails proxy** (`/rails/active_storage/...`, URL tương đối). Lên AWS S3: chỉ đổi `S3_*`, bỏ `S3_ENDPOINT` |
 
 ---
 
@@ -33,6 +34,8 @@ docker-compose
 ├── api     Rails 8.1 API-only                host :3001 (API_PORT)
 ├── worker  Sidekiq 8
 ├── socket  Node 22 + Socket.IO + ioredis     host :4000
+├── s3      RustFS (S3 giả lập) + console     host :9001 (S3_CONSOLE_PORT), API nội bộ :9000
+├── s3-init AWS CLI tạo bucket rồi thoát
 └── web     React 19 + Vite (3 site)          host :5173  ← cổng duy nhất cho client
 ```
 
@@ -116,7 +119,7 @@ docker-compose
 | `tables` | number (unique), name/area, qr_token (unique), status (`available`,`occupied`), seats |
 | `table_sessions` | table_id, session_token (unique), verify_code (3 số), status (`open`,`closed`), opened_at, closed_at, closed_by_id |
 | `categories` | name, position, active |
-| `menu_items` | category_id, name, description, price (int), image_url, available, position |
+| `menu_items` | category_id, name, description, price (int), image (Active Storage), image_url (link ngoài, dự phòng), available, position |
 | `orders` | table_id, table_session_id, code, status, note, total (int), confirmed_by_id, confirmed_at, completed_at, cancelled_at |
 | `order_items` | order_id, menu_item_id, name_snapshot, price_snapshot, quantity, note, status, done_at |
 | `order_events` | order_id, user_id (nullable), action, from_status, to_status, created_at |
@@ -147,6 +150,7 @@ pending ──(waiter xác nhận)──▶ confirmed ──(bếp bắt đầu/
 - Huỷ: phục vụ huỷ được đơn `pending`/`confirmed`; manager/owner huỷ được mọi đơn đang hoạt động.
 - Xoá món đã có trong đơn → chỉ ẩn (`available=false`) để giữ lịch sử.
 - Chỉnh giá hàng loạt làm tròn tới 1.000đ.
+- **Ảnh món**: `has_one_attached :image`, variant `card` 480×360 webp (tạo sẵn bằng Sidekiq khi upload). API trả `image_url` = ảnh upload (proxy path) → nếu không có thì `image_url` link ngoài → nếu không có thì `null` (FE hiện ảnh mặc định). Chỉ nhận JPG/PNG/WEBP/HEIC, tối đa 5MB.
 
 ---
 
@@ -177,7 +181,7 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - [x] Toast realtime: đơn được xác nhận, món xong, món hết
 
 > Mở trang = `POST` session (quét QR); refetch sau đó = `GET /public/session` (không tự mở session mới cho máy cũ sau khi bàn đã thanh toán).
-> Ảnh món demo: SVG minh hoạ tại `web/public/images/menu/*.svg` (không phụ thuộc internet).
+> Ảnh món: từ S3 qua Rails proxy (§0 D9). Giỏ hàng lưu trong sessionStorage được đồng bộ lại (giá/ảnh/tình trạng) mỗi khi tải menu.
 
 ### 5.2 Staff Site — mobile + iPad
 - [ ] Login email + password (JWT)
@@ -229,6 +233,7 @@ Routing FE: `/t/:qrToken` (khách) · `/staff/*` · `/manage/*`
 - `GET /manage/dashboard`
 - `GET/PATCH /manage/orders(/:id)`
 - CRUD `/manage/categories`, `/manage/menu_items`, `POST /manage/categories/:id/adjust_prices`
+- Ảnh món: `PATCH /manage/menu_items/:id` multipart field `image`; `remove_image=true` để xoá
 - CRUD `/manage/tables`, `POST /manage/tables/:id/regenerate_qr`
 - `GET /manage/reports/revenue?from=&to=&group=day|month(&format=csv)` (owner; mặc định đầu tháng → hôm nay)
 - `GET /manage/orders?status=&date=&table_id=&page=` (30/trang)
@@ -255,12 +260,19 @@ REDIS_URL=redis://redis:6379/0
 JWT_SECRET=change_me
 SOCKET_JWT_SECRET=change_me_too
 TZ=Asia/Ho_Chi_Minh
+
+S3_ENDPOINT=http://s3:9000      # bỏ trống khi dùng AWS S3
+S3_ACCESS_KEY=s3admin
+S3_SECRET_KEY=s3admin123
+S3_BUCKET=restaurant-dev
+S3_REGION=ap-southeast-1
+S3_CONSOLE_PORT=9001
 ```
 
 ## 9. Seed data
 - Users (mật khẩu `password`): `owner@demo.vn`, `manager@demo.vn`, `waiter@demo.vn`, `waiter2@demo.vn`, `kitchen@demo.vn`
 - 10 bàn (Tầng 1: 1–6, Tầng 2: 7–10)
-- 6 category: Khai vị, Món chính, Lẩu, Đồ uống, Tráng miệng, Combo — ~35 món tiếng Việt
+- 6 category: Khai vị, Món chính, Lẩu, Đồ uống, Tráng miệng, Combo — 34 món tiếng Việt, ảnh demo `api/db/seed_images/*.png` upload lên S3 khi seed
 - Lịch sử order 30 ngày (completed) cho báo cáo
 - Hôm nay: vài session mở + order ở đủ trạng thái
 
@@ -276,6 +288,7 @@ make ip           # detect LAN IP (macOS) → ghi vào .env
 make qr           # in URL QR các bàn
 make urls         # in URL truy cập (localhost + LAN)
 make ps           # trạng thái container
+make s3           # link + tài khoản S3 console
 ```
 
 ## 11. Cấu trúc thư mục
@@ -314,3 +327,4 @@ restaurant-app/
 | 2026-10-13 | 1.3 | B2 xong. Phân quyền dùng `allow_roles` thay Pundit. Publisher realtime phía server làm luôn trong B2 → B3 chỉ còn phía client. Thêm room `guests`, event `staff_call.resolved`, `session.closed`, API bật lại món, danh sách gọi nhân viên. Bổ sung quy tắc nghiệp vụ |
 | 2026-10-13 | 1.4 | B3 xong. Bếp nhận cả event completed/cancelled của đơn đã xác nhận (để gỡ khỏi board). Mô tả lớp realtime phía client + trang `/dev/realtime` |
 | 2026-10-13 | 1.5 | B4 xong (User Site). Ảnh demo chuyển sang SVG local (loremflickr trả 401). Ghi rõ quy tắc POST/GET session phía khách |
+| 2026-10-13 | 1.6 | Thêm D9: Active Storage + S3, local dùng RustFS (MinIO không còn image). Upload/xoá ảnh món qua API manage. Ảnh demo chuyển lên S3. Vite proxy thêm `/rails`. Giỏ hàng tự đồng bộ với menu |

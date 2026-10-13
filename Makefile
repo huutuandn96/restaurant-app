@@ -5,7 +5,7 @@ s ?= api
 -include .env
 
 .DEFAULT_GOAL := help
-.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls
+.PHONY: help env ip setup build up down restart logs ps migrate seed reset-db console bash test qr urls s3
 
 help: ## Danh sách lệnh
 	@grep -E '^[a-zA-Z_-]+:.*?## ' $(MAKEFILE_LIST) | awk 'BEGIN{FS=":.*?## "}{printf "  \033[36m%-10s\033[0m %s\n",$$1,$$2}'
@@ -70,4 +70,8 @@ urls: ## In các URL truy cập
 	@echo "  Staff         : http://$(LAN_IP):$(WEB_PORT)/staff"
 	@echo "  Manage        : http://$(LAN_IP):$(WEB_PORT)/manage"
 	@echo "  API health    : http://localhost:$(API_PORT)/api/v1/health"
+	@echo "  S3 console    : http://localhost:$(S3_CONSOLE_PORT)/rustfs/console/  ($(S3_ACCESS_KEY) / $(S3_SECRET_KEY))"
 	@echo ""
+
+s3: ## Link + tài khoản S3 console (RustFS giả lập S3)
+	@echo "  http://localhost:$(S3_CONSOLE_PORT)/rustfs/console/  user: $(S3_ACCESS_KEY)  pass: $(S3_SECRET_KEY)  bucket: $(S3_BUCKET)"

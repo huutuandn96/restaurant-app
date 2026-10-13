@@ -13,6 +13,7 @@ type CartState = {
   setQuantity: (itemId: number, quantity: number) => void
   setNote: (itemId: number, note: string) => void
   syncItem: (item: MenuItem) => void
+  syncMenu: (items: MenuItem[]) => void
   clear: () => void
 }
 
@@ -49,6 +50,17 @@ export const useCart = create<CartState>()(
       // Cập nhật giá / tình trạng món từ realtime
       syncItem: (item) =>
         set((s) => (s.lines[item.id] ? { lines: { ...s.lines, [item.id]: { ...s.lines[item.id], item } } } : s)),
+      // Giỏ lưu trong sessionStorage có thể giữ giá / ảnh / tình trạng cũ → đồng bộ khi tải menu
+      syncMenu: (items) =>
+        set((s) => {
+          const byId = new Map(items.map((i) => [i.id, i]))
+          const lines: Record<number, CartLine> = {}
+          for (const [id, line] of Object.entries(s.lines)) {
+            const fresh = byId.get(Number(id))
+            if (fresh) lines[Number(id)] = { ...line, item: fresh } // món bị xoá khỏi menu → bỏ khỏi giỏ
+          }
+          return { lines }
+        }),
       clear: () => set({ lines: {} }),
     }),
     { name: 'guest-cart', storage: createJSONStorage(() => sessionStorage) },
