@@ -113,7 +113,7 @@ function StaffShell() {
 
       <main className="flex-1 pb-20">
         <Routes>
-          <Route index element={<Navigate to={isWaiter ? 'orders' : 'kitchen'} replace />} />
+          <Route index element={<Navigate to={isWaiter ? '/staff/orders' : '/staff/kitchen'} replace />} />
           {isWaiter && <Route path="orders" element={<WaiterOrdersPage />} />}
           {isWaiter && <Route path="tables" element={<TablesPage />} />}
           {isWaiter && <Route path="tables/:id" element={<TableDetailPage />} />}

@@ -55,3 +55,12 @@ export async function download(path: string, token: string, filename: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+// Upload multipart (ảnh món) — không set Content-Type để browser tự thêm boundary
+export async function upload<T>(path: string, form: FormData, token: string, method = 'PATCH'): Promise<T> {
+  const res = await fetch(`/api/v1${path}`, { method, headers: { Authorization: `Bearer ${token}` }, body: form })
+  const text = await res.text()
+  const data = text ? JSON.parse(text) : null
+  if (!res.ok) throw new ApiError(res.status, data, data?.error || res.statusText)
+  return data as T
+}

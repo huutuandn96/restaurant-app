@@ -6,6 +6,7 @@ class User < ApplicationRecord
   enum :role, ROLES.index_by(&:itself), validate: true
 
   validates :name, presence: true
+  validates :password, length: { minimum: 6 }, allow_nil: true
   validates :email, presence: true, uniqueness: { case_sensitive: false },
                     format: { with: URI::MailTo::EMAIL_REGEXP }
 
